@@ -10,13 +10,13 @@ screenlog daemon
 - Pushes to GitHub Pages (docs/ folder in this repo)
 """
 
-import ctypes
 import json
 import os
 import random
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -28,49 +28,29 @@ except ImportError:
     subprocess.run([sys.executable, "-m", "pip", "install", "pillow"], check=True)
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-# ── CoreGraphics screen capture (avoids screencapture subprocess TCC issues) ──
-_cg = ctypes.CDLL('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
-_cf = ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
-_cg.CGMainDisplayID.restype = ctypes.c_uint32
-_cg.CGDisplayCreateImage.restype = ctypes.c_void_p
-_cg.CGDisplayCreateImage.argtypes = [ctypes.c_uint32]
-_cg.CGImageGetWidth.restype = ctypes.c_size_t
-_cg.CGImageGetWidth.argtypes = [ctypes.c_void_p]
-_cg.CGImageGetHeight.restype = ctypes.c_size_t
-_cg.CGImageGetHeight.argtypes = [ctypes.c_void_p]
-_cg.CGImageGetBytesPerRow.restype = ctypes.c_size_t
-_cg.CGImageGetBytesPerRow.argtypes = [ctypes.c_void_p]
-_cg.CGImageGetDataProvider.restype = ctypes.c_void_p
-_cg.CGImageGetDataProvider.argtypes = [ctypes.c_void_p]
-_cg.CGDataProviderCopyData.restype = ctypes.c_void_p
-_cg.CGDataProviderCopyData.argtypes = [ctypes.c_void_p]
-_cg.CGImageRelease.argtypes = [ctypes.c_void_p]
-_cf.CFDataGetLength.restype = ctypes.c_long
-_cf.CFDataGetLength.argtypes = [ctypes.c_void_p]
-_cf.CFDataGetBytePtr.restype = ctypes.c_void_p
-_cf.CFDataGetBytePtr.argtypes = [ctypes.c_void_p]
-_cf.CFRelease.argtypes = [ctypes.c_void_p]
-
 def grab_screen():
-    display = _cg.CGMainDisplayID()
-    img_ref = _cg.CGDisplayCreateImage(display)
-    if not img_ref:
-        return None
+    # osascript do shell script runs screencapture in the Aqua GUI session,
+    # inheriting the user's Screen Recording permission grant.
+    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+        tmp_path = tmp.name
     try:
-        w = _cg.CGImageGetWidth(img_ref)
-        h = _cg.CGImageGetHeight(img_ref)
-        bpr = _cg.CGImageGetBytesPerRow(img_ref)
-        provider = _cg.CGImageGetDataProvider(img_ref)
-        data_ref = _cg.CGDataProviderCopyData(provider)
-        length = _cf.CFDataGetLength(data_ref)
-        ptr = _cf.CFDataGetBytePtr(data_ref)
-        raw = (ctypes.c_uint8 * length).from_address(ptr)
-        # bpr may be padded; pass stride so PIL reads rows correctly
-        img = Image.frombuffer('RGBA', (w, h), bytes(raw), 'raw', 'BGRA', bpr, 1)
-        _cf.CFRelease(data_ref)
-        return img.convert('RGB')
+        r = subprocess.run(
+            ["osascript", "-e",
+             f'do shell script "/usr/sbin/screencapture -x -t jpg {tmp_path}"'],
+            capture_output=True, timeout=15
+        )
+        if r.returncode != 0 or not os.path.exists(tmp_path) or os.path.getsize(tmp_path) < 1000:
+            log(f"screencapture failed: {r.stderr.decode().strip()}")
+            return None
+        return Image.open(tmp_path).convert("RGB")
+    except Exception as e:
+        log(f"grab_screen error: {e}")
+        return None
     finally:
-        _cg.CGImageRelease(img_ref)
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
 
 # ── paths ──────────────────────────────────────────────────────────────────
 REPO_DIR  = Path(__file__).parent
