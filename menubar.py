@@ -61,34 +61,50 @@ _PLIST_TEMPLATE = """\
 
 
 def _make_icon():
-    """Hawk head with wings raised, rendered as black-on-transparent PNG.
+    """Render the ASCII hawk face as a black-on-transparent PNG.
     Returns temp file path, or None if PIL unavailable."""
     try:
-        from PIL import Image, ImageDraw
-        px  = 44
-        img = Image.new("RGBA", (px, px), (0, 0, 0, 0))
+        from PIL import Image, ImageDraw, ImageFont
+
+        lines = [r"\(o,o)/", r" \)X(/"]
+        font_size = 13
+
+        font = None
+        for candidate in [
+            "/System/Library/Fonts/Menlo.ttc",
+            "/Library/Fonts/Menlo.ttc",
+            "/System/Library/Fonts/Courier New.ttf",
+        ]:
+            try:
+                font = ImageFont.truetype(candidate, font_size)
+                break
+            except Exception:
+                pass
+        if font is None:
+            font = ImageFont.load_default()
+
+        def _bbox(text):
+            probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+            try:
+                b = probe.textbbox((0, 0), text, font=font)
+                return b[2] - b[0], b[3] - b[1]
+            except AttributeError:
+                return probe.textsize(text, font=font)  # older Pillow
+
+        sizes   = [_bbox(l) for l in lines]
+        pad     = 2
+        line_gap = 1
+        W = max(s[0] for s in sizes) + pad * 2
+        H = sum(s[1] for s in sizes) + pad * 2 + line_gap * (len(lines) - 1)
+
+        img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d   = ImageDraw.Draw(img)
         c   = (0, 0, 0, 255)
 
-        # Head oval
-        d.ellipse([13, 13, 31, 31], outline=c, width=2)
-        # Eyes
-        d.ellipse([16, 18, 20, 22], fill=c)
-        d.ellipse([24, 18, 28, 22], fill=c)
-        # Beak
-        d.polygon([(22, 25), (19, 29), (25, 29)], fill=c)
-        # Crest
-        d.line([22, 13, 22, 8],  fill=c, width=2)
-        d.line([22,  8, 19, 5],  fill=c, width=2)
-        d.line([22,  8, 25, 5],  fill=c, width=2)
-        # Left wing raised  (\)
-        d.line([13, 19,  3,  8], fill=c, width=2)
-        d.line([ 3,  8,  1, 12], fill=c, width=2)
-        d.line([ 3,  8,  6,  5], fill=c, width=2)
-        # Right wing raised (/)
-        d.line([31, 19, 41,  8], fill=c, width=2)
-        d.line([41,  8, 38,  5], fill=c, width=2)
-        d.line([41,  8, 43, 12], fill=c, width=2)
+        y = pad
+        for line, (w, h) in zip(lines, sizes):
+            d.text((pad, y), line, fill=c, font=font)
+            y += h + line_gap
 
         path = Path(tempfile.gettempdir()) / "loghawk_icon.png"
         img.save(str(path))
@@ -102,16 +118,16 @@ def _plist_exists() -> bool:
 
 
 def _write_plist():
+    # Just drop the file — ~/Library/LaunchAgents plists are picked up at next login
+    # automatically. Don't call launchctl load or RunAtLoad would spawn a second instance.
     _PLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
     _PLIST_PATH.write_text(_PLIST_TEMPLATE.format(
         label=_PLIST_LABEL, python=sys.executable,
         script=_SCRIPT, workdir=_HERE, home=_HOME,
     ))
-    subprocess.run(["launchctl", "load", str(_PLIST_PATH)], capture_output=True)
 
 
 def _remove_plist():
-    subprocess.run(["launchctl", "unload", str(_PLIST_PATH)], capture_output=True)
     _PLIST_PATH.unlink(missing_ok=True)
 
 
