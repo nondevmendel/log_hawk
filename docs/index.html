@@ -339,7 +339,7 @@ function renderBrowser() {
     </div>
   </div>`;
 
-  if (!live) {
+  if (!getFilteredEntries(true).length) {
     gallery.innerHTML = `<div class="browser-body">
       <div class="group-col">${leftHeader}<div class="group-list"></div></div>
       <div class="shot-panel"><div class="empty-panel">No screenshots yet. Daemon captures when you browse social media.</div></div>
