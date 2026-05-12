@@ -109,6 +109,7 @@
   }
   .shot-tomb .tomb-icon { font-size:18px; }
   .shot-tomb .tomb-lbl { font-size:10px; color:var(--muted); }
+  .shot-tomb .tomb-domain { font-size:11px; color:var(--accent); font-weight:600; }
   .empty-panel { display:flex; align-items:center; justify-content:center; width:100%; color:var(--muted); font-size:13px; }
 
   /* Sidebar */
@@ -298,6 +299,7 @@ function shotThumb(e, i) {
     return `<div class="shot-tomb" title="${e.display}">
       <span class="tomb-icon">🚫</span>
       <span class="tomb-lbl">removed</span>
+      <span class="tomb-domain">${e.domain || ''}</span>
     </div>`;
   }
   return `<img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">`;
