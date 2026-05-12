@@ -194,7 +194,7 @@ async function loadShots() {
             <div class="tomb-body">
               <div class="tomb-icon">🚫</div>
               <div class="tomb-label">Screenshot removed</div>
-              <div class="tomb-domain">${e.domain || 'unknown domain'}</div>
+              <div class="tomb-domain">${e.domain || 'social media'}</div>
               <div class="tomb-del-at">${e.display}</div>
             </div>
             <div class="card-meta">
@@ -492,7 +492,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/delete":
             stem   = body.get("stem", "")
-            domain = body.get("domain", "")
+            domain = body.get("domain", "") or "social media"
             jpg = SHOTS / f"{stem}.jpg"
             if jpg.exists():
                 jpg.unlink()
