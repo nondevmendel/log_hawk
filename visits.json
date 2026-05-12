@@ -1,35 +1,35 @@
 {
   "facebook.com": {
-    "total_visits": 9,
-    "total_time_seconds": 990,
-    "last_visit": "2026-05-12T11:43:48.190226",
+    "total_visits": 10,
+    "total_time_seconds": 1050,
+    "last_visit": "2026-05-12T12:02:36.234562",
     "daily": {
       "2026-05-12": {
-        "visits": 9,
-        "time_seconds": 990
+        "visits": 10,
+        "time_seconds": 1050
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 9,
-        "time_seconds": 990
+        "visits": 10,
+        "time_seconds": 1050
       }
     }
   },
   "youtube.com": {
-    "total_visits": 2,
-    "total_time_seconds": 60,
-    "last_visit": "2026-05-12T12:01:01.377904",
+    "total_visits": 3,
+    "total_time_seconds": 150,
+    "last_visit": "2026-05-12T12:03:38.152750",
     "daily": {
       "2026-05-12": {
-        "visits": 2,
-        "time_seconds": 60
+        "visits": 3,
+        "time_seconds": 150
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 2,
-        "time_seconds": 60
+        "visits": 3,
+        "time_seconds": 150
       }
     }
   }
