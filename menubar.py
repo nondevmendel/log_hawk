@@ -7,7 +7,10 @@ Stop old daemon first:
   launchctl unload ~/.screenlog/com.mendelrosenberg.screenlog.plist
 """
 
+import atexit
+import os
 import random
+import signal
 import subprocess
 import sys
 import tempfile
@@ -26,6 +29,7 @@ import daemon as _d
 
 _PLIST_LABEL = "com.mendelrosenberg.screenlog"
 _PLIST_PATH  = _HOME / "Library" / "LaunchAgents" / f"{_PLIST_LABEL}.plist"
+_PIDFILE     = _HERE / "menubar.pid"
 
 _PLIST_TEMPLATE = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -61,54 +65,54 @@ _PLIST_TEMPLATE = """\
 
 
 def _make_icon(color: tuple, name: str):
-    """Render the ASCII hawk face in `color` as a PNG. Returns file path or None."""
+    """Render the ASCII hawk face at 2x scale. Returns (path, pt_width) or (None, 0)."""
     try:
         from PIL import Image, ImageDraw, ImageFont
 
-        lines = [r"\(o,o)/", r" \)X(/"]
-        font_size = 13
+        lines    = [r"\(o,o)/", r" \)X(/"]
+        font_pt  = 14          # point size — rendered at 2x so appears as 7pt on screen
+        scale    = 2           # retina 2x
+        font_px  = font_pt * scale
 
         font = None
-        for candidate in [
-            "/System/Library/Fonts/Menlo.ttc",
-            "/Library/Fonts/Menlo.ttc",
-            "/System/Library/Fonts/Courier New.ttf",
-        ]:
+        for candidate in ["/System/Library/Fonts/Menlo.ttc",
+                          "/Library/Fonts/Menlo.ttc",
+                          "/System/Library/Fonts/Courier New.ttf"]:
             try:
-                font = ImageFont.truetype(candidate, font_size)
+                font = ImageFont.truetype(candidate, font_px)
                 break
             except Exception:
                 pass
         if font is None:
             font = ImageFont.load_default()
 
-        def _bbox(text):
-            probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+        probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+        def _bbox(t):
             try:
-                b = probe.textbbox((0, 0), text, font=font)
+                b = probe.textbbox((0, 0), t, font=font)
                 return b[2] - b[0], b[3] - b[1]
             except AttributeError:
-                return probe.textsize(text, font=font)
+                return probe.textsize(t, font=font)
 
         sizes    = [_bbox(l) for l in lines]
-        pad      = 2
-        line_gap = 1
+        pad      = scale * 2
+        gap      = scale
         W = max(s[0] for s in sizes) + pad * 2
-        H = sum(s[1] for s in sizes) + pad * 2 + line_gap * (len(lines) - 1)
+        H = sum(s[1] for s in sizes) + pad * 2 + gap
 
         img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d   = ImageDraw.Draw(img)
-
-        y = pad
+        y   = pad
         for line, (_, h) in zip(lines, sizes):
             d.text((pad, y), line, fill=color, font=font)
-            y += h + line_gap
+            y += h + gap
 
         path = Path(tempfile.gettempdir()) / f"loghawk_icon_{name}.png"
         img.save(str(path))
-        return str(path)
+        # return logical pt size for setSize_ call (pixels / scale)
+        return str(path), W / scale, H / scale
     except Exception:
-        return None
+        return None, 0, 0
 
 
 def _plist_exists() -> bool:
@@ -116,8 +120,6 @@ def _plist_exists() -> bool:
 
 
 def _write_plist():
-    # Just drop the file — ~/Library/LaunchAgents plists are picked up at next login
-    # automatically. Don't call launchctl load or RunAtLoad would spawn a second instance.
     _PLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
     _PLIST_PATH.write_text(_PLIST_TEMPLATE.format(
         label=_PLIST_LABEL, python=sys.executable,
@@ -126,21 +128,39 @@ def _write_plist():
 
 
 def _remove_plist():
+    subprocess.run(["launchctl", "unload", str(_PLIST_PATH)], capture_output=True)
     _PLIST_PATH.unlink(missing_ok=True)
+
+
+def _acquire_singleton():
+    """Kill any existing menubar.py instance so only one runs at a time."""
+    my_pid = os.getpid()
+    # Unload any launchd-managed instance (prevents KeepAlive restart loop)
+    subprocess.run(["launchctl", "unload", str(_PLIST_PATH)], capture_output=True)
+    # Kill previous instance via PID file
+    if _PIDFILE.exists():
+        try:
+            old = int(_PIDFILE.read_text().strip())
+            if old != my_pid:
+                os.kill(old, signal.SIGTERM)
+                time.sleep(0.5)
+        except Exception:
+            pass
+    _PIDFILE.write_text(str(my_pid))
+    atexit.register(lambda: _PIDFILE.unlink(missing_ok=True))
 
 
 class LogHawkApp(rumps.App):
 
-    # green = recording, red = paused
     _GREEN = (34, 197, 94, 255)
     _RED   = (239, 68, 68, 255)
 
     def __init__(self):
-        self._icon_on  = _make_icon(self._GREEN, "on")
+        self._icon_on  = _make_icon(self._GREEN, "on")   # (path, pt_w, pt_h)
         self._icon_off = _make_icon(self._RED,   "off")
         super().__init__(
             "Log Hawk",
-            icon=self._icon_on,
+            icon=self._icon_on[0],
             template=False,
             quit_button=None,
         )
@@ -167,7 +187,24 @@ class LogHawkApp(rumps.App):
             rumps.MenuItem("Quit Log Hawk",  callback=self.on_quit),
         ]
 
+        self._apply_icon(self._icon_on)
         self._start_loop()
+
+    def _apply_icon(self, icon_tuple):
+        """Set icon and use PyObjC to tell macOS its logical pt size."""
+        path, pt_w, pt_h = icon_tuple
+        if not path:
+            return
+        self.icon = path
+        try:
+            import AppKit
+            btn = self._status_item.button()
+            img = btn.image()
+            if img and pt_w and pt_h:
+                img.setSize_(AppKit.NSSize(pt_w, pt_h))
+                btn.setImage_(img)
+        except Exception:
+            pass
 
     # ── daemon loop ──────────────────────────────────────────────────────────
 
@@ -232,14 +269,12 @@ class LogHawkApp(rumps.App):
             self._stop_evt.set()
             self.toggle_item.title = "Resume Recording"
             self.status_item.title = "○ Paused"
-            if self._icon_off:
-                self.icon = self._icon_off
+            self._apply_icon(self._icon_off)
         else:
             self._recording = True
             self.toggle_item.title = "Pause Recording"
             self.status_item.title = "● Recording"
-            if self._icon_on:
-                self.icon = self._icon_on
+            self._apply_icon(self._icon_on)
             self._start_loop()
 
     def on_dashboard(self, _):
@@ -257,9 +292,11 @@ class LogHawkApp(rumps.App):
             self.login_item.state = 1
 
     def on_quit(self, _):
+        _PIDFILE.unlink(missing_ok=True)
         self._stop_evt.set()
         rumps.quit_application()
 
 
 if __name__ == "__main__":
+    _acquire_singleton()
     LogHawkApp().run()
