@@ -102,7 +102,11 @@ main{padding:24px;max-width:1600px;margin:0 auto}
 </head>
 <body>
 <header>
-  <h1><pre class="hawk">  __\n /oo\\\n |  |</pre> Log <span>Hawk</span> <span style="font-size:11px;color:var(--muted);font-weight:400">admin</span></h1>
+  <h1><pre class="hawk">   _,_
+  (o,o)
+__/)X(\__
+\_/ | \_/
+    |</pre> Log <span>Hawk</span> <span style="font-size:11px;color:var(--muted);font-weight:400">admin</span></h1>
   <div class="tabs">
     <button class="tab active" onclick="switchTab('shots')">Screenshots</button>
     <button class="tab" onclick="switchTab('ignore')">Ignore List</button>

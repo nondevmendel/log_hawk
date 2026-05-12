@@ -89,14 +89,13 @@
 
 <header>
   <div class="logo">
-    <pre class="hawk-ascii">  __
- /oo\
- |  |__
-/|  |  \
-\|  |  /
- \|_|_/
-  ||||
- ======</pre>
+    <pre class="hawk-ascii" id="hawk-anim">     _,_
+    (o,o)
+ __/ )X( \__
+/  _/ | \_  \
+\_/   |   \_/
+      |||
+   ═══════</pre>
     <div class="logo-text">
       <h1>Log <span>Hawk</span></h1>
       <p>live screen log — social media only</p>
@@ -275,6 +274,37 @@ setInterval(() => {
 }, 1000);
 
 load();
+
+// Hawk flap animation
+const HAWK_FRAMES = [
+`  \\  _,_  /
+   \\(o,o)/
+    \\)X(/
+     / \\
+    /   \\
+     |||
+  ═══════    `,
+`     _,_
+    (o,o)
+ __/ )X( \\__
+/  _/ | \\_  \\
+\\_/   |   \\_/
+      |||
+   ═══════   `,
+`     _,_
+    (o,o)
+    / X \\
+ __/  |  \\__
+/_____|_____\\
+      |||
+   ═══════   `
+];
+let hawkFrame = 1;
+const hawkEl = document.getElementById("hawk-anim");
+setInterval(() => {
+  hawkFrame = (hawkFrame + 1) % HAWK_FRAMES.length;
+  hawkEl.textContent = HAWK_FRAMES[hawkFrame];
+}, 380);
 </script>
 </body>
 </html>
