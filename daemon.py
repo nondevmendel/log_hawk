@@ -23,10 +23,10 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 try:
-    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageGrab
 except ImportError:
     subprocess.run([sys.executable, "-m", "pip", "install", "pillow"], check=True)
-    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageGrab
 
 # ── paths ──────────────────────────────────────────────────────────────────
 REPO_DIR  = Path(__file__).parent
@@ -300,25 +300,12 @@ def take_screenshot(url, domain):
     stem = now.strftime("%Y%m%d_%H%M%S")
     final_path = SHOTS_DIR / f"{stem}.jpg"
 
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        tmp_path = Path(tmp.name)
-
     try:
-        # Prefer window-only capture (excludes desktop, other apps, other windows)
-        wid = get_browser_window_id()
-        if wid:
-            cmd = ["/usr/sbin/screencapture", "-x", "-l", str(wid), "-t", "png", str(tmp_path)]
-        else:
-            cmd = ["/usr/sbin/screencapture", "-x", "-t", "png", str(tmp_path)]
-        result = subprocess.run(cmd, capture_output=True, timeout=15)
-        if result.returncode != 0 or not tmp_path.exists() or tmp_path.stat().st_size < 100:
-            err = result.stderr.decode().strip()
-            log(f"screencapture failed (rc={result.returncode}): {err}")
-            if "could not create image" in err:
-                log("⚠ → System Settings > Privacy & Security > Screen Recording > enable Terminal")
+        img = ImageGrab.grab()
+        if img is None:
+            log("ImageGrab.grab() returned None — Screen Recording permission may be missing")
             return None
-
-        img = Image.open(tmp_path).convert("RGB")
+        img = img.convert("RGB")
         if img.width > MAX_WIDTH:
             ratio = MAX_WIDTH / img.width
             img = img.resize((MAX_WIDTH, int(img.height * ratio)), Image.LANCZOS)
@@ -348,10 +335,8 @@ def take_screenshot(url, domain):
         return final_path, stem
 
     except Exception as e:
-        log(f"Image processing error: {e}")
+        log(f"Screenshot error: {e}")
         return None
-    finally:
-        tmp_path.unlink(missing_ok=True)
 
 
 def cleanup_old():
