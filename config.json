@@ -1,9 +1,8 @@
 {
-  "_comment": "ignored_urls: substrings matched against the full URL. Any match → screenshot skipped.",
+  "_comment": "ignored_urls: substrings matched against the full URL. Any match \u2192 screenshot skipped.",
   "ignored_urls": [
     "messenger.facebook.com",
     "facebook.com/messages",
-    "facebook.com/reels",
     "facebook.com/reel/"
   ]
 }
