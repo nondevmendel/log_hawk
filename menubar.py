@@ -64,20 +64,19 @@ _PLIST_TEMPLATE = """\
 """
 
 
-def _make_icon(color: tuple, name: str):
-    """Render the ASCII hawk face. Returns (path, pt_w, 22) or (None, 0, 0).
-    Image is resized to exactly 44px tall so it displays at 22pt on @2x Retina."""
+def _make_icon(color: tuple, name: str, text: str):
+    """Render a single-line icon with thick stroke. Returns (path, pt_w, 22)."""
     try:
         from PIL import Image, ImageDraw, ImageFont
 
-        lines  = [r"\(o,o)/", r" \)X(/"]
-        PAD    = 3
-        GAP    = 2
+        FONT_PX = 24
+        STROKE  = 2    # stroke makes thin monospace chars look bold
+        PAD     = 4
 
         font = None
         for c in ["/System/Library/Fonts/Menlo.ttc", "/Library/Fonts/Menlo.ttc"]:
             try:
-                font = ImageFont.truetype(c, 18)
+                font = ImageFont.truetype(c, FONT_PX)
                 break
             except Exception:
                 pass
@@ -85,32 +84,33 @@ def _make_icon(color: tuple, name: str):
             font = ImageFont.load_default()
 
         probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        def _sz(t):
-            try:
-                b = probe.textbbox((0, 0), t, font=font)
-                return b[2] - b[0], b[3] - b[1]
-            except AttributeError:
-                return probe.textsize(t, font=font)
+        try:
+            b = probe.textbbox((0, 0), text, font=font)
+            tw, th = b[2] - b[0], b[3] - b[1]
+        except AttributeError:
+            tw, th = probe.textsize(text, font=font)
 
-        sizes = [_sz(l) for l in lines]
-        W = max(s[0] for s in sizes) + PAD * 2
-        H = sum(s[1] for s in sizes) + PAD * 2 + GAP
+        W = tw + PAD * 2 + STROKE * 2
+        H = th + PAD * 2 + STROKE * 2
 
         img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d   = ImageDraw.Draw(img)
-        y   = PAD
-        for line, (_, h) in zip(lines, sizes):
-            d.text((PAD, y), line, fill=color, font=font)
-            y += h + GAP
+        x   = PAD + STROKE
+        y   = PAD + STROKE
+        try:
+            d.text((x, y), text, fill=color, font=font,
+                   stroke_width=STROKE, stroke_fill=color)
+        except TypeError:
+            d.text((x, y), text, fill=color, font=font)
 
-        # Pin to exactly 44px tall = 22pt @2x; scale width proportionally
+        # Pin to 44px tall = 22pt @2x, scale width proportionally
         TARGET = 44
         W2 = max(1, round(W * TARGET / H))
         img = img.resize((W2, TARGET), Image.LANCZOS)
 
         path = Path(tempfile.gettempdir()) / f"loghawk_icon_{name}.png"
         img.save(str(path))
-        return str(path), round(W2 / 2), 22   # pt_w, pt_h (always 22pt tall)
+        return str(path), round(W2 / 2), 22
     except Exception:
         return None, 0, 0
 
@@ -156,8 +156,8 @@ class LogHawkApp(rumps.App):
     _RED   = (239, 68, 68, 255)
 
     def __init__(self):
-        self._icon_on  = _make_icon(self._GREEN, "on")   # (path, pt_w, pt_h)
-        self._icon_off = _make_icon(self._RED,   "off")
+        self._icon_on  = _make_icon(self._GREEN, "on",  "(o,o)")
+        self._icon_off = _make_icon(self._RED,   "off", "(x,x)")
         super().__init__(
             "Log Hawk",
             icon=self._icon_on[0],
