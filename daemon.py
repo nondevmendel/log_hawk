@@ -38,8 +38,8 @@ VISITS_FILE = REPO_DIR / "visits.json"    # {domain: {visits, last_visit}}
 
 # ── timing ─────────────────────────────────────────────────────────────────
 POLL_INTERVAL = 30
-MIN_SHOT_GAP  = 8 * 60
-MAX_SHOT_GAP  = 11 * 60
+MIN_SHOT_GAP  = 2 * 60
+MAX_SHOT_GAP  = 4 * 60
 MAX_AGE_HOURS = 48
 
 # ── image settings ─────────────────────────────────────────────────────────
