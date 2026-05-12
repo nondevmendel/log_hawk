@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Log</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #e0e0e0;
+    --muted: #888;
+    --accent: #4a9eff;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,15,15,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  header h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  header h1 span { color: var(--accent); }
+
+  #status {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #4CAF50;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  #countdown {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  main {
+    padding: 24px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  #day-group { margin-bottom: 40px; }
+
+  .day-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 32px rgba(74,158,255,0.12);
+  }
+
+  .card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+    background: #111;
+  }
+
+  .card-meta {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-meta .time { color: var(--text); font-weight: 500; }
+  .card-meta .idx { color: var(--border); }
+
+  /* Lightbox */
+  #lb {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0,0,0,0.92);
+    backdrop-filter: blur(8px);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  #lb.open { display: flex; }
+
+  #lb img {
+    max-width: 95vw;
+    max-height: 85vh;
+    border-radius: 8px;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.8);
+  }
+
+  #lb-meta {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  #lb-close {
+    position: absolute;
+    top: 20px; right: 24px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.1s;
+  }
+  #lb-close:hover { color: var(--text); }
+
+  #lb-nav {
+    display: flex;
+    gap: 12px;
+  }
+  #lb-nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: border-color 0.1s;
+  }
+  #lb-nav button:hover { border-color: var(--accent); }
+  #lb-nav button:disabled { opacity: 0.3; cursor: default; }
+
+  #empty {
+    display: none;
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+  #empty h2 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
+
+  #loading {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Screen <span>Log</span></h1>
+  <div id="status">
+    <div id="dot"></div>
+    <span id="count">Loading…</span>
+  </div>
+  <div id="countdown"></div>
+</header>
+
+<main>
+  <div id="loading">Loading screenshots…</div>
+  <div id="empty">
+    <h2>No screenshots yet</h2>
+    <p>The daemon will post its first screenshot soon.</p>
+  </div>
+  <div id="gallery"></div>
+</main>
+
+<!-- Lightbox -->
+<div id="lb">
+  <button id="lb-close" title="Close">×</button>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-meta"></div>
+  <div id="lb-nav">
+    <button id="lb-prev">← Newer</button>
+    <button id="lb-next">Older →</button>
+  </div>
+</div>
+
+<script>
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 min
+let allEntries = [];
+let lbIndex = 0;
+
+async function load() {
+  try {
+    const res = await fetch(`index.json?t=${Date.now()}`);
+    allEntries = await res.json();
+    render(allEntries);
+  } catch (e) {
+    document.getElementById("loading").textContent = "Failed to load — retrying…";
+  }
+}
+
+function render(entries) {
+  document.getElementById("loading").style.display = "none";
+  const gallery = document.getElementById("gallery");
+  const empty = document.getElementById("empty");
+
+  if (!entries.length) {
+    empty.style.display = "block";
+    document.getElementById("count").textContent = "0 screenshots";
+    return;
+  }
+
+  empty.style.display = "none";
+  document.getElementById("count").textContent =
+    `${entries.length} screenshot${entries.length !== 1 ? "s" : ""}`;
+
+  // Group by date
+  const groups = {};
+  entries.forEach((e, i) => {
+    const d = e.date;
+    if (!groups[d]) groups[d] = [];
+    groups[d].push({ ...e, globalIndex: i });
+  });
+
+  gallery.innerHTML = "";
+  Object.entries(groups).forEach(([date, items]) => {
+    const section = document.createElement("div");
+    section.className = "day-group";
+    section.innerHTML = `<div class="day-label">${date} &mdash; ${items.length} screenshot${items.length !== 1 ? "s" : ""}</div>`;
+    const grid = document.createElement("div");
+    grid.className = "grid";
+
+    items.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img src="screenshots/${item.file}" alt="${item.display}" loading="lazy">
+        <div class="card-meta">
+          <span class="time">${item.display}</span>
+          <span class="idx">#${item.globalIndex + 1}</span>
+        </div>`;
+      card.addEventListener("click", () => openLightbox(item.globalIndex));
+      grid.appendChild(card);
+    });
+
+    section.appendChild(grid);
+    gallery.appendChild(section);
+  });
+}
+
+function openLightbox(index) {
+  lbIndex = index;
+  updateLightbox();
+  document.getElementById("lb").classList.add("open");
+}
+
+function updateLightbox() {
+  const e = allEntries[lbIndex];
+  document.getElementById("lb-img").src = `screenshots/${e.file}`;
+  document.getElementById("lb-meta").textContent = e.display;
+  document.getElementById("lb-prev").disabled = lbIndex === 0;
+  document.getElementById("lb-next").disabled = lbIndex === allEntries.length - 1;
+}
+
+document.getElementById("lb-close").addEventListener("click", () => {
+  document.getElementById("lb").classList.remove("open");
+});
+document.getElementById("lb").addEventListener("click", e => {
+  if (e.target === document.getElementById("lb")) {
+    document.getElementById("lb").classList.remove("open");
+  }
+});
+document.getElementById("lb-prev").addEventListener("click", () => {
+  if (lbIndex > 0) { lbIndex--; updateLightbox(); }
+});
+document.getElementById("lb-next").addEventListener("click", () => {
+  if (lbIndex < allEntries.length - 1) { lbIndex++; updateLightbox(); }
+});
+document.addEventListener("keydown", e => {
+  const lb = document.getElementById("lb");
+  if (!lb.classList.contains("open")) return;
+  if (e.key === "Escape") lb.classList.remove("open");
+  if (e.key === "ArrowLeft" && lbIndex > 0) { lbIndex--; updateLightbox(); }
+  if (e.key === "ArrowRight" && lbIndex < allEntries.length - 1) { lbIndex++; updateLightbox(); }
+});
+
+// Auto-refresh countdown
+let nextRefresh = Date.now() + REFRESH_INTERVAL;
+function tick() {
+  const remaining = Math.max(0, nextRefresh - Date.now());
+  const m = Math.floor(remaining / 60000);
+  const s = Math.floor((remaining % 60000) / 1000);
+  document.getElementById("countdown").textContent =
+    `Refreshes in ${m}:${String(s).padStart(2, "0")}`;
+  if (remaining === 0) {
+    nextRefresh = Date.now() + REFRESH_INTERVAL;
+    load();
+  }
+}
+
+load();
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>
