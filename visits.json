@@ -83,5 +83,22 @@
         "time_seconds": 40
       }
     }
+  },
+  "reddit.com": {
+    "total_visits": 1,
+    "total_time_seconds": 20,
+    "last_visit": "2026-05-12T16:25:43.423503",
+    "daily": {
+      "2026-05-12": {
+        "visits": 1,
+        "time_seconds": 20
+      }
+    },
+    "weekly": {
+      "2026-W20": {
+        "visits": 1,
+        "time_seconds": 20
+      }
+    }
   }
 }
