@@ -1,18 +1,18 @@
 {
   "facebook.com": {
-    "total_visits": 11,
-    "total_time_seconds": 1080,
-    "last_visit": "2026-05-12T12:07:03.321639",
+    "total_visits": 13,
+    "total_time_seconds": 1230,
+    "last_visit": "2026-05-12T12:10:37.945222",
     "daily": {
       "2026-05-12": {
-        "visits": 11,
-        "time_seconds": 1080
+        "visits": 13,
+        "time_seconds": 1230
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 11,
-        "time_seconds": 1080
+        "visits": 13,
+        "time_seconds": 1230
       }
     }
   },
