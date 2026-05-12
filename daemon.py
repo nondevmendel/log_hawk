@@ -29,28 +29,83 @@ except ImportError:
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 def grab_screen():
-    # launchctl asuser places screencapture in the user's GUI bootstrap session,
-    # where the Screen Recording TCC grant is respected.
-    uid = str(os.getuid())
-    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-        tmp_path = tmp.name
+    # Call CGWindowListCreateImage directly from Python via ctypes.
+    # Python (com.apple.python3) holds the Screen Recording TCC permission,
+    # so calling the CG API here avoids the issue where a subprocess like
+    # screencapture gets denied because its parent chain has no TCC grant.
+    import ctypes
+    from ctypes import c_float, c_uint32, c_size_t, c_long, c_void_p, c_bool, Structure
+
     try:
-        r = subprocess.run(
-            ["launchctl", "asuser", uid, "/usr/sbin/screencapture", "-x", "-t", "jpg", tmp_path],
-            capture_output=True, timeout=15
-        )
-        if r.returncode != 0 or not os.path.exists(tmp_path) or os.path.getsize(tmp_path) < 1000:
-            log(f"screencapture failed: rc={r.returncode} {r.stderr.decode().strip()}")
+        cg = ctypes.CDLL('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
+        cf = ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+
+        # Check permission first so we get a clear log message
+        cg.CGRequestScreenCaptureAccess.restype  = c_bool
+        cg.CGRequestScreenCaptureAccess.argtypes = []
+        has_access = cg.CGRequestScreenCaptureAccess()
+        if not has_access:
+            log("Screen Recording permission denied — open System Settings → Privacy & Security → Screen Recording and enable Python")
             return None
-        return Image.open(tmp_path).convert("RGB")
+
+        class CGPoint(Structure):
+            _fields_ = [("x", c_float), ("y", c_float)]
+        class CGSize(Structure):
+            _fields_ = [("width", c_float), ("height", c_float)]
+        class CGRect(Structure):
+            _fields_ = [("origin", CGPoint), ("size", CGSize)]
+
+        cg.CGWindowListCreateImage.restype  = c_void_p
+        cg.CGWindowListCreateImage.argtypes = [CGRect, c_uint32, c_uint32, c_uint32]
+        cg.CGImageGetWidth.restype          = c_size_t
+        cg.CGImageGetWidth.argtypes         = [c_void_p]
+        cg.CGImageGetHeight.restype         = c_size_t
+        cg.CGImageGetHeight.argtypes        = [c_void_p]
+        cg.CGImageGetBytesPerRow.restype    = c_size_t
+        cg.CGImageGetBytesPerRow.argtypes   = [c_void_p]
+        cg.CGImageGetDataProvider.restype   = c_void_p
+        cg.CGImageGetDataProvider.argtypes  = [c_void_p]
+        cg.CGDataProviderCopyData.restype   = c_void_p
+        cg.CGDataProviderCopyData.argtypes  = [c_void_p]
+        cf.CFDataGetLength.restype          = c_long
+        cf.CFDataGetLength.argtypes         = [c_void_p]
+        cf.CFDataGetBytePtr.restype         = c_void_p
+        cf.CFDataGetBytePtr.argtypes        = [c_void_p]
+        cf.CFRelease.restype                = None
+        cf.CFRelease.argtypes               = [c_void_p]
+        cg.CGImageRelease.restype           = None
+        cg.CGImageRelease.argtypes          = [c_void_p]
+
+        # CGRectInfinite = capture all screens
+        rect = CGRect(CGPoint(-8388608.0, -8388608.0), CGSize(16777216.0, 16777216.0))
+        kOnScreenOnly  = c_uint32(1)
+        kNullWindowID  = c_uint32(0)
+        kImageDefault  = c_uint32(0)
+
+        img_ref = cg.CGWindowListCreateImage(rect, kOnScreenOnly, kNullWindowID, kImageDefault)
+        if not img_ref:
+            log("CGWindowListCreateImage returned NULL (no display or permission issue)")
+            return None
+
+        w   = cg.CGImageGetWidth(img_ref)
+        h   = cg.CGImageGetHeight(img_ref)
+        bpr = cg.CGImageGetBytesPerRow(img_ref)
+
+        provider = cg.CGImageGetDataProvider(img_ref)
+        data_ref = cg.CGDataProviderCopyData(provider)
+        length   = cf.CFDataGetLength(data_ref)
+        ptr      = cf.CFDataGetBytePtr(data_ref)
+        raw      = (ctypes.c_uint8 * length).from_address(ptr)
+        img      = Image.frombuffer('RGBA', (w, h), bytes(raw), 'raw', 'BGRA', bpr, 1)
+        img      = img.convert('RGB')
+
+        cf.CFRelease(data_ref)
+        cg.CGImageRelease(img_ref)
+        return img
+
     except Exception as e:
         log(f"grab_screen error: {e}")
         return None
-    finally:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
 
 # ── paths ──────────────────────────────────────────────────────────────────
 REPO_DIR  = Path(__file__).parent
