@@ -29,18 +29,18 @@ except ImportError:
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 def grab_screen():
-    # osascript do shell script runs screencapture in the Aqua GUI session,
-    # inheriting the user's Screen Recording permission grant.
+    # launchctl asuser places screencapture in the user's GUI bootstrap session,
+    # where the Screen Recording TCC grant is respected.
+    uid = str(os.getuid())
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
         tmp_path = tmp.name
     try:
         r = subprocess.run(
-            ["osascript", "-e",
-             f'do shell script "/usr/sbin/screencapture -x -t jpg {tmp_path}"'],
+            ["launchctl", "asuser", uid, "/usr/sbin/screencapture", "-x", "-t", "jpg", tmp_path],
             capture_output=True, timeout=15
         )
         if r.returncode != 0 or not os.path.exists(tmp_path) or os.path.getsize(tmp_path) < 1000:
-            log(f"screencapture failed: {r.stderr.decode().strip()}")
+            log(f"screencapture failed: rc={r.returncode} {r.stderr.decode().strip()}")
             return None
         return Image.open(tmp_path).convert("RGB")
     except Exception as e:
