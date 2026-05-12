@@ -1,18 +1,18 @@
 {
   "facebook.com": {
-    "total_visits": 24,
-    "total_time_seconds": 2000,
-    "last_visit": "2026-05-12T16:02:34.389346",
+    "total_visits": 25,
+    "total_time_seconds": 2020,
+    "last_visit": "2026-05-12T16:07:46.134791",
     "daily": {
       "2026-05-12": {
-        "visits": 24,
-        "time_seconds": 2000
+        "visits": 25,
+        "time_seconds": 2020
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 24,
-        "time_seconds": 2000
+        "visits": 25,
+        "time_seconds": 2020
       }
     }
   },
@@ -52,18 +52,35 @@
   },
   "instagram.com": {
     "total_visits": 1,
-    "total_time_seconds": 180,
+    "total_time_seconds": 200,
     "last_visit": "2026-05-12T16:03:39.604851",
     "daily": {
       "2026-05-12": {
         "visits": 1,
-        "time_seconds": 180
+        "time_seconds": 200
       }
     },
     "weekly": {
       "2026-W20": {
         "visits": 1,
-        "time_seconds": 180
+        "time_seconds": 200
+      }
+    }
+  },
+  "linkedin.com": {
+    "total_visits": 1,
+    "total_time_seconds": 40,
+    "last_visit": "2026-05-12T16:07:05.522419",
+    "daily": {
+      "2026-05-12": {
+        "visits": 1,
+        "time_seconds": 40
+      }
+    },
+    "weekly": {
+      "2026-W20": {
+        "visits": 1,
+        "time_seconds": 40
       }
     }
   }
