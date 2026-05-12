@@ -145,9 +145,7 @@
   .vt-btn.active { background:var(--accent); color:#fff; }
   .vt-btn:hover:not(.active) { color:var(--text); background:rgba(74,158,255,.09); }
 
-  /* Admin panel */
-  .admin-main { padding:24px 28px; max-width:1600px; margin:0 auto; display:none; }
-  .admin-main.visible { display:block; }
+  /* Admin panel (sub-panels live inside main now) */
   .admin-tabs { display:flex; gap:4px; margin-bottom:20px; }
   .admin-tab { background:none; border:1px solid var(--border); color:var(--muted); padding:7px 16px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500; transition:.12s; }
   .admin-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -208,6 +206,26 @@
   .coming-soon-banner h3 { font-size:15px; font-weight:600; color:var(--text); margin-bottom:8px; }
   .coming-soon-banner p { font-size:13px; line-height:1.6; }
 
+  /* Log sub-nav */
+  .log-subnav { display:flex; gap:6px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+  .log-tab { background:none; border:1px solid var(--border); color:var(--muted); padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500; transition:.12s; }
+  .log-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .log-tab:hover:not(.active) { border-color:var(--accent); color:var(--text); }
+  .log-panel { display:none; }
+  .log-panel.active { display:block; }
+
+  /* Shot delete overlay */
+  .shot-wrap { position:relative; display:inline-block; width:172px; height:113px; flex-shrink:0; }
+  .shot-wrap .shot-thumb { width:100%; height:100%; }
+  .shot-del-overlay {
+    position:absolute; top:5px; right:5px;
+    background:rgba(0,0,0,.65); border:none; color:#fff; border-radius:50%;
+    width:22px; height:22px; font-size:11px; cursor:pointer;
+    opacity:0; transition:opacity .15s;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .shot-wrap:hover .shot-del-overlay { opacity:1; }
+
   /* Lightbox */
   #lb { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.9); backdrop-filter:blur(8px); align-items:center; justify-content:center; flex-direction:column; gap:12px; cursor:pointer; }
   #lb.open { display:flex; }
@@ -254,41 +272,39 @@
   </div>
   <div class="header-right">
     <div class="view-toggle">
-      <button class="vt-btn active" id="btn-feed" onclick="setView('feed')">My Feed</button>
+      <button class="vt-btn active" id="btn-log" onclick="setView('log')">My Log</button>
       <button class="vt-btn" id="btn-following" onclick="setView('following')">Following</button>
-      <button class="vt-btn" id="btn-admin" onclick="setView('admin')">Admin</button>
     </div>
     <span id="dot"></span>
     <span id="refresh-info">Loading…</span>
   </div>
 </header>
 
-<main>
-  <div class="layout">
-    <div id="gallery"></div>
-    <div class="sidebar">
-      <div class="s-card">
-        <h3>Top Sites This Week</h3>
-        <div id="stats-list"><span style="font-size:12px;color:var(--muted)">No data yet</span></div>
-      </div>
-      <div class="s-card">
-        <h3>Currently Ignored</h3>
-        <div id="ignore-list"><span style="font-size:12px;color:var(--muted)">Nothing ignored</span></div>
+<main id="log-main">
+  <div class="log-subnav">
+    <button class="log-tab active" id="ltab-shots" onclick="setLogTab('shots')">Screenshots</button>
+    <button class="log-tab" id="ltab-ignore" onclick="setLogTab('ignore')">Ignore List</button>
+    <button class="log-tab" id="ltab-stats" onclick="setLogTab('stats')">Visit Stats</button>
+  </div>
+  <div id="admin-status" class="admin-status"></div>
+
+  <div id="lpanel-shots" class="log-panel active">
+    <div class="layout">
+      <div id="gallery"></div>
+      <div class="sidebar">
+        <div class="s-card">
+          <h3>Top Sites This Week</h3>
+          <div id="stats-list"><span style="font-size:12px;color:var(--muted)">No data yet</span></div>
+        </div>
+        <div class="s-card">
+          <h3>Currently Ignored</h3>
+          <div id="ignore-list"><span style="font-size:12px;color:var(--muted)">Nothing ignored</span></div>
+        </div>
       </div>
     </div>
   </div>
-</main>
 
-<!-- ── Admin Panel ─────────────────────────────────────────────────────── -->
-<div id="admin-main" class="admin-main">
-  <div id="admin-status" class="admin-status"></div>
-  <div class="admin-tabs">
-    <button class="admin-tab active" id="atab-shots" onclick="adminTab('shots')">Screenshots</button>
-    <button class="admin-tab" id="atab-ignore" onclick="adminTab('ignore')">Ignore List</button>
-    <button class="admin-tab" id="atab-stats" onclick="adminTab('stats')">Visit Stats</button>
-  </div>
-  <div id="apanel-shots" class="admin-panel active"><div id="admin-shots-content"></div></div>
-  <div id="apanel-ignore" class="admin-panel">
+  <div id="lpanel-ignore" class="log-panel">
     <div class="ignore-wrap">
       <div class="section-title">Ignored URL Patterns</div>
       <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Substrings matched against the full URL. Changes take effect on the next poll.</p>
@@ -299,11 +315,12 @@
       </div>
     </div>
   </div>
-  <div id="apanel-stats" class="admin-panel">
+
+  <div id="lpanel-stats" class="log-panel">
     <div class="section-title">Social Media Visits</div>
     <div id="admin-stats-grid" class="stats-full-grid"></div>
   </div>
-</div>
+</main>
 
 <!-- ── Following Panel ────────────────────────────────────────────────── -->
 <div id="following-main" class="following-main">
@@ -447,7 +464,10 @@ function shotThumb(e, i) {
       <span class="tomb-domain">${e.domain || ''}</span>
     </div>`;
   }
-  return `<img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">`;
+  return `<div class="shot-wrap">
+    <img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">
+    <button class="shot-del-overlay" onclick="galleryDelete('${e.stem}','${e.domain||''}',event)" title="Delete">✕</button>
+  </div>`;
 }
 
 function hoverGroup(idx) {
@@ -592,37 +612,38 @@ function renderIgnored(list) {
 }
 // ── View switching ────────────────────────────────────────────────────────────
 
-let currentView = 'feed';
+let currentView = 'log';
+let currentLogTab = 'shots';
 
 function setView(view) {
   currentView = view;
-  document.querySelector('main').style.display          = view === 'feed'      ? '' : 'none';
-  document.getElementById('admin-main').classList.toggle('visible', view === 'admin');
+  document.getElementById('log-main').style.display = view === 'log' ? '' : 'none';
   document.getElementById('following-main').classList.toggle('visible', view === 'following');
-  ['feed','following','admin'].forEach(v => {
+  ['log', 'following'].forEach(v => {
     document.getElementById('btn-' + v).classList.toggle('active', v === view);
   });
-  if (view === 'admin') adminLoad();
+}
+
+function setLogTab(tab) {
+  currentLogTab = tab;
+  ['shots', 'ignore', 'stats'].forEach(t => {
+    document.getElementById('ltab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('lpanel-' + t).classList.toggle('active', t === tab);
+  });
+  adminStatus('');
+  if (tab === 'ignore') adminRenderIgnore();
+  if (tab === 'stats')  adminRenderStats();
 }
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
 const ADMIN = 'http://localhost:8765';
-let adminIgnored = [], adminEntries = [], adminMode = 'hour', adminGroups = [], adminActiveIdx = -1;
+let adminIgnored = [];
 
 function adminStatus(msg, type) {
   const el = document.getElementById('admin-status');
   el.textContent = msg;
   el.className = 'admin-status ' + (type || '');
-}
-
-function adminTab(name) {
-  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('atab-' + name).classList.add('active');
-  document.getElementById('apanel-' + name).classList.add('active');
-  if (name === 'ignore') adminRenderIgnore();
-  if (name === 'stats')  adminRenderStats();
 }
 
 async function adminApi(path, method = 'GET', body = null) {
@@ -633,113 +654,13 @@ async function adminApi(path, method = 'GET', body = null) {
   return r.json();
 }
 
-async function adminLoad() {
-  adminStatus('');
-  try {
-    const data = await adminApi('/api/data');
-    adminEntries  = data.screenshots;
-    adminIgnored  = (data.config || {}).ignored_urls || [];
-    adminRenderShots();
-  } catch(e) {
-    adminStatus('Admin server not reachable — run admin.py (localhost:8765)', 'err');
-    document.getElementById('admin-shots-content').innerHTML =
-      '<p style="color:var(--muted);padding:40px 0;text-align:center">Start the admin server to manage screenshots.</p>';
-  }
-}
-
-// ── Admin: screenshots ────────────────────────────────────────────────────────
-
-function adminGroupKey(e, mode) {
-  if (mode === 'hour') {
-    const d = new Date(e.iso);
-    const ds = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
-    const h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
-    return `${ds} · ${h % 12 || 12}:00 ${ampm}`;
-  }
-  return e.domain || 'unknown';
-}
-
-function adminBuildGroups(mode) {
-  const m = new Map();
-  adminEntries.filter(e => !e.deleted).forEach(e => {
-    const k = adminGroupKey(e, mode);
-    if (!m.has(k)) m.set(k, { key: k, entries: [], sortIso: e.iso });
-    m.get(k).entries.push(e);
-  });
-  const arr = [...m.values()];
-  if (mode === 'hour') arr.sort((a, b) => b.sortIso.localeCompare(a.sortIso));
-  else arr.sort((a, b) => b.entries.length - a.entries.length);
-  return arr;
-}
-
-function adminSetMode(mode) { adminMode = mode; adminActiveIdx = 0; adminRenderShots(); }
-
-function adminHover(idx) {
-  if (idx === adminActiveIdx) return;
-  adminActiveIdx = idx;
-  document.querySelectorAll('#admin-shots-content .group-item').forEach(el =>
-    el.classList.toggle('active', +el.dataset.gi === idx));
-  const entries = (adminGroups[idx] || {}).entries || [];
-  document.getElementById('admin-shot-panel').innerHTML =
-    entries.length ? entries.map(adminShotCard).join('') : '<div class="empty-panel">No screenshots</div>';
-}
-
-function adminRenderShots() {
-  const container = document.getElementById('admin-shots-content');
-  if (!adminEntries.length) { container.innerHTML = '<p style="color:var(--muted);padding:40px 0;text-align:center">No screenshots yet.</p>'; return; }
-
-  adminGroups = adminBuildGroups(adminMode);
-  if (adminActiveIdx < 0 || adminActiveIdx >= adminGroups.length) adminActiveIdx = 0;
-
-  const toggle = `<div class="toggle-bar" style="margin-bottom:14px">
-    <button class="tgl-btn${adminMode==='hour'?' active':''}" onclick="adminSetMode('hour')">By Hour</button>
-    <button class="tgl-btn${adminMode==='domain'?' active':''}" onclick="adminSetMode('domain')">By Domain</button>
-  </div>`;
-
-  let listHtml = '', lastDate = '';
-  adminGroups.forEach((g, i) => {
-    if (adminMode === 'hour') {
-      const [date, hour] = g.key.split(' · ');
-      if (date !== lastDate) { listHtml += `<div class="group-date">${date}</div>`; lastDate = date; }
-      listHtml += `<div class="group-item${i===adminActiveIdx?' active':''}" data-gi="${i}" onmouseenter="adminHover(${i})">
-        <span class="g-label">${hour}</span><span class="g-count">${g.entries.length}</span></div>`;
-    } else {
-      listHtml += `<div class="group-item${i===adminActiveIdx?' active':''}" data-gi="${i}" onmouseenter="adminHover(${i})">
-        <span class="g-label">${g.key}</span><span class="g-count">${g.entries.length}</span></div>`;
-    }
-  });
-
-  const activeEntries = (adminGroups[adminActiveIdx] || {}).entries || [];
-  const panelHtml = activeEntries.length ? activeEntries.map(adminShotCard).join('') : '<div class="empty-panel">No screenshots</div>';
-
-  container.innerHTML = toggle + `<div class="browser-body">
-    <div class="group-col">
-      <div class="group-list">${listHtml}</div>
-    </div>
-    <div class="shot-panel" id="admin-shot-panel">${panelHtml}</div>
-  </div>`;
-}
-
-function adminShotCard(e) {
-  const t = e.display.match(/\d+:\d+:\d+ [AP]M/)?.[0] || e.display;
-  return `<div class="shot-card">
-    <img src="${ADMIN}/screenshots/${e.file}" loading="lazy" onclick="openLb(0,'${ADMIN}/screenshots/${e.file}')" alt="" title="${e.display}">
-    <div class="shot-meta">
-      <span class="shot-time">${t}</span>
-      <button class="shot-del" onclick="adminDelete('${e.stem}','${e.domain||''}')">✕</button>
-    </div>
-  </div>`;
-}
-
-async function adminDelete(stem, domain) {
-  if (!confirm(`Delete this screenshot?\n\nA tombstone for "${domain || 'this site'}" will appear in the gallery.`)) return;
-  adminStatus('Deleting…', 'ok');
+async function galleryDelete(stem, domain, event) {
+  event.stopPropagation();
+  if (!confirm(`Delete this screenshot?\n\nA tombstone for "${domain || 'this site'}" will remain in your log.`)) return;
   try {
     await adminApi('/api/delete', 'POST', { stem, domain });
-    adminStatus('Deleted and pushed.', 'ok');
-    adminLoad();
-    load(); // refresh gallery too
-  } catch(e) { adminStatus('Delete failed: ' + e.message, 'err'); }
+    load();
+  } catch(e) { alert('Delete failed — is the admin server running?\n\n' + e.message); }
 }
 
 // ── Admin: ignore list ────────────────────────────────────────────────────────
