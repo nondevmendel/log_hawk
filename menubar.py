@@ -65,21 +65,19 @@ _PLIST_TEMPLATE = """\
 
 
 def _make_icon(color: tuple, name: str):
-    """Render the ASCII hawk face at 2x scale. Returns (path, pt_width) or (None, 0)."""
+    """Render the ASCII hawk face. Returns (path, pt_w, 22) or (None, 0, 0).
+    Image is resized to exactly 44px tall so it displays at 22pt on @2x Retina."""
     try:
         from PIL import Image, ImageDraw, ImageFont
 
-        lines    = [r"\(o,o)/", r" \)X(/"]
-        font_pt  = 14          # point size — rendered at 2x so appears as 7pt on screen
-        scale    = 2           # retina 2x
-        font_px  = font_pt * scale
+        lines  = [r"\(o,o)/", r" \)X(/"]
+        PAD    = 3
+        GAP    = 2
 
         font = None
-        for candidate in ["/System/Library/Fonts/Menlo.ttc",
-                          "/Library/Fonts/Menlo.ttc",
-                          "/System/Library/Fonts/Courier New.ttf"]:
+        for c in ["/System/Library/Fonts/Menlo.ttc", "/Library/Fonts/Menlo.ttc"]:
             try:
-                font = ImageFont.truetype(candidate, font_px)
+                font = ImageFont.truetype(c, 18)
                 break
             except Exception:
                 pass
@@ -87,30 +85,32 @@ def _make_icon(color: tuple, name: str):
             font = ImageFont.load_default()
 
         probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        def _bbox(t):
+        def _sz(t):
             try:
                 b = probe.textbbox((0, 0), t, font=font)
                 return b[2] - b[0], b[3] - b[1]
             except AttributeError:
                 return probe.textsize(t, font=font)
 
-        sizes    = [_bbox(l) for l in lines]
-        pad      = scale * 2
-        gap      = scale
-        W = max(s[0] for s in sizes) + pad * 2
-        H = sum(s[1] for s in sizes) + pad * 2 + gap
+        sizes = [_sz(l) for l in lines]
+        W = max(s[0] for s in sizes) + PAD * 2
+        H = sum(s[1] for s in sizes) + PAD * 2 + GAP
 
         img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d   = ImageDraw.Draw(img)
-        y   = pad
+        y   = PAD
         for line, (_, h) in zip(lines, sizes):
-            d.text((pad, y), line, fill=color, font=font)
-            y += h + gap
+            d.text((PAD, y), line, fill=color, font=font)
+            y += h + GAP
+
+        # Pin to exactly 44px tall = 22pt @2x; scale width proportionally
+        TARGET = 44
+        W2 = max(1, round(W * TARGET / H))
+        img = img.resize((W2, TARGET), Image.LANCZOS)
 
         path = Path(tempfile.gettempdir()) / f"loghawk_icon_{name}.png"
         img.save(str(path))
-        # return logical pt size for setSize_ call (pixels / scale)
-        return str(path), W / scale, H / scale
+        return str(path), round(W2 / 2), 22   # pt_w, pt_h (always 22pt tall)
     except Exception:
         return None, 0, 0
 
@@ -191,20 +191,18 @@ class LogHawkApp(rumps.App):
         self._start_loop()
 
     def _apply_icon(self, icon_tuple):
-        """Set icon and use PyObjC to tell macOS its logical pt size."""
+        """Load icon, declare its pt size, then push to the status bar button."""
         path, pt_w, pt_h = icon_tuple
         if not path:
             return
-        self.icon = path
         try:
             import AppKit
-            btn = self._status_item.button()
-            img = btn.image()
-            if img and pt_w and pt_h:
-                img.setSize_(AppKit.NSSize(pt_w, pt_h))
-                btn.setImage_(img)
+            img = AppKit.NSImage.alloc().initWithContentsOfFile_(path)
+            img.setSize_(AppKit.NSSize(pt_w, pt_h))   # must happen before setImage_
+            self._status_item.button().setImage_(img)
+            self._icon_path = path                     # keep rumps state in sync
         except Exception:
-            pass
+            self.icon = path                           # fallback
 
     # ── daemon loop ──────────────────────────────────────────────────────────
 
