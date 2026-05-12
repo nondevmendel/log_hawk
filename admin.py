@@ -47,27 +47,34 @@ header h1{font-size:15px;font-weight:700;display:flex;align-items:center;gap:10p
 main{padding:24px;max-width:1600px;margin:0 auto}
 .panel{display:none}.panel.active{display:block}
 
-/* Screenshot grid */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:4px}
-.day-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative}
-.card img{width:100%;height:190px;object-fit:cover;display:block;background:#111;cursor:zoom-in}
-.card-meta{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
-.card-meta .row{display:flex;justify-content:space-between;align-items:center}
-.card-meta .time{font-size:12px;color:var(--text);font-weight:500}
-.card-meta .domain{font-size:11px;color:var(--accent)}
-.btn-delete{font-size:11px;background:rgba(224,85,85,.15);border:1px solid rgba(224,85,85,.4);color:var(--red);padding:4px 10px;border-radius:5px;cursor:pointer;transition:.15s;white-space:nowrap}
-.btn-delete:hover{background:var(--red);color:#fff}
+/* Segmented toggle */
+.toggle-bar{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.tgl-btn{background:none;border:none;border-right:1px solid var(--border);color:var(--muted);padding:7px 20px;cursor:pointer;font-size:13px;font-weight:500;transition:.12s}
+.tgl-btn:last-child{border-right:none}
+.tgl-btn.active{background:var(--accent);color:#fff}
+.tgl-btn:hover:not(.active){background:rgba(74,158,255,.09);color:var(--text)}
 
-/* Tombstone */
-.card.tombstone{border-color:#333;opacity:.75}
-.tomb-body{height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#151515}
-.tomb-icon{font-size:28px;opacity:.5}
-.tomb-label{font-size:12px;color:var(--muted)}
-.tomb-domain{font-size:13px;color:var(--text);font-weight:500}
-.tomb-del-at{font-size:11px;color:var(--muted)}
-.btn-forget{font-size:11px;background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;transition:.15s}
-.btn-forget:hover{border-color:var(--red);color:var(--red)}
+/* Browser */
+.browser-body{display:grid;grid-template-columns:220px 1fr;border:1px solid var(--border);border-radius:10px;overflow:hidden;min-height:420px}
+.group-list{border-right:1px solid var(--border);overflow-y:auto;max-height:65vh}
+.group-date{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:9px 14px 4px;background:rgba(0,0,0,.25);position:sticky;top:0;z-index:1}
+.group-item{padding:9px 14px 9px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);border-left:2px solid transparent;transition:background .08s,border-color .08s}
+.group-item:last-child{border-bottom:none}
+.group-item:hover,.group-item.active{background:rgba(74,158,255,.07);border-left-color:var(--accent)}
+.g-label{font-size:13px;font-weight:500;transition:color .08s}
+.group-item.active .g-label{color:var(--accent)}
+.g-count{font-size:10px;color:var(--muted);background:rgba(255,255,255,.05);padding:2px 6px;border-radius:9px}
+
+/* Shot panel */
+.shot-panel{padding:14px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:10px;overflow-y:auto;max-height:65vh}
+.shot-card{width:172px;flex-shrink:0}
+.shot-card img{width:172px;height:113px;object-fit:cover;border-radius:6px 6px 0 0;cursor:zoom-in;display:block;border:2px solid transparent;transition:border-color .12s}
+.shot-card img:hover{border-color:var(--accent)}
+.shot-meta{background:var(--surface2);padding:5px 8px;border-radius:0 0 6px 6px;display:flex;justify-content:space-between;align-items:center}
+.shot-time{font-size:10px;color:var(--muted)}
+.shot-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:3px;transition:.1s;line-height:1}
+.shot-del:hover{color:var(--red);background:rgba(224,85,85,.12)}
+.empty-panel{display:flex;align-items:center;justify-content:center;width:100%;color:var(--muted);font-size:13px}
 
 /* Ignore list */
 .ignore-wrap{max-width:640px}
@@ -83,28 +90,6 @@ main{padding:24px;max-width:1600px;margin:0 auto}
 .btn-add{background:var(--accent);border:none;color:#fff;padding:9px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:.15s;white-space:nowrap}
 .btn-add:hover{opacity:.85}
 .empty{color:var(--muted);font-size:13px;padding:24px 0;text-align:center}
-
-/* View toggle */
-.view-bar{display:flex;gap:6px;margin-bottom:18px}
-.vt-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:.15s}
-.vt-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.vt-btn:hover:not(.active){border-color:var(--accent);color:var(--text)}
-.back-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;margin-bottom:14px;transition:.15s;display:inline-block}
-.back-btn:hover{border-color:var(--accent);color:var(--text)}
-.group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px}
-
-/* Folder grid */
-.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-.folder-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
-.folder-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 8px 28px rgba(74,158,255,.1)}
-.folder-thumbs{position:relative;height:130px;background:#111;overflow:hidden}
-.folder-thumb{position:absolute;width:150px;height:100px;object-fit:cover;border-radius:5px;border:2px solid var(--bg)}
-.folder-thumb:nth-child(1){left:8px;top:24px;transform:rotate(-5deg);z-index:1}
-.folder-thumb:nth-child(2){left:30px;top:12px;transform:rotate(0deg);z-index:2}
-.folder-thumb:nth-child(3){left:52px;top:2px;transform:rotate(4deg);z-index:3;box-shadow:2px 2px 8px rgba(0,0,0,.5)}
-.folder-info{padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
-.folder-label{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:74%}
-.folder-count{font-size:11px;color:var(--accent);white-space:nowrap}
 
 /* Stats */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:4px}
@@ -139,19 +124,13 @@ __/)X(\__
 <div id="status-bar">Ready</div>
 
 <main>
-  <!-- Screenshots -->
   <div id="panel-shots" class="panel active">
     <div id="shots-content">Loading…</div>
   </div>
-
-  <!-- Ignore List -->
   <div id="panel-ignore" class="panel">
     <div class="ignore-wrap">
       <div class="section-title">Ignored URL Patterns</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
-        Substrings matched against the full URL. Screenshots on matching URLs are skipped.
-        Changes take effect on the next 30-second poll — no restart needed.
-      </p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Substrings matched against the full URL. Changes take effect on the next 30-second poll.</p>
       <div id="ignore-list"></div>
       <div class="add-row">
         <input id="new-pattern" type="text" placeholder="e.g. messenger.facebook.com or facebook.com/reels">
@@ -159,24 +138,20 @@ __/)X(\__
       </div>
     </div>
   </div>
-
-  <!-- Visit Stats -->
   <div id="panel-stats" class="panel">
     <div class="section-title">Social Media Visits</div>
     <div id="stats-grid" class="stats-grid"></div>
   </div>
 </main>
 
-<!-- Lightbox -->
 <div id="lb"><button id="lb-close" onclick="closeLb()">×</button><img id="lb-img" src="" alt=""></div>
 
 <script>
-let currentIgnored = [], allEntries = [], groupBy = 'all', activeGroup = null;
+let currentIgnored = [], allEntries = [], currentMode = 'hour', currentGroups = [], activeIdx = -1;
 
 function status(msg, isErr) {
   const el = document.getElementById('status-bar');
-  el.textContent = msg;
-  el.className = isErr ? 'error' : '';
+  el.textContent = msg; el.className = isErr ? 'error' : '';
 }
 
 async function api(path, method='GET', body=null) {
@@ -186,7 +161,6 @@ async function api(path, method='GET', body=null) {
   return r.json();
 }
 
-// ── Tab switching ────────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -196,9 +170,9 @@ function switchTab(name) {
   if (name === 'stats') renderStats();
 }
 
-// ── Grouping helpers ─────────────────────────────────────────────────────────
-function getGroupKey(e, by) {
-  if (by === 'hour') {
+// ── Grouping ──────────────────────────────────────────────────────────────────
+function getGroupKey(e, mode) {
+  if (mode === 'hour') {
     const d = new Date(e.iso);
     const ds = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
     const h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
@@ -207,32 +181,34 @@ function getGroupKey(e, by) {
   return e.domain || 'unknown';
 }
 
-function buildGroups(by) {
+function buildGroups(mode) {
   const m = new Map();
   allEntries.filter(e => !e.deleted).forEach(e => {
-    const k = getGroupKey(e, by);
+    const k = getGroupKey(e, mode);
     if (!m.has(k)) m.set(k, { key: k, entries: [], sortIso: e.iso });
     m.get(k).entries.push(e);
   });
   const arr = [...m.values()];
-  if (by === 'hour') arr.sort((a, b) => b.sortIso.localeCompare(a.sortIso));
+  if (mode === 'hour') arr.sort((a, b) => b.sortIso.localeCompare(a.sortIso));
   else arr.sort((a, b) => b.entries.length - a.entries.length);
   return arr;
 }
 
-function setGroupBy(by) { groupBy = by; activeGroup = null; renderShots(); }
-function openFolder(key) { activeGroup = key; renderShots(); }
-function backToFolders() { activeGroup = null; renderShots(); }
+function setMode(mode) { currentMode = mode; activeIdx = 0; renderShots(); }
 
-function viewBarHtml() {
-  return `<div class="view-bar">
-    <button class="vt-btn ${groupBy==='all'?'active':''}" onclick="setGroupBy('all')">All</button>
-    <button class="vt-btn ${groupBy==='hour'?'active':''}" onclick="setGroupBy('hour')">By Hour</button>
-    <button class="vt-btn ${groupBy==='domain'?'active':''}" onclick="setGroupBy('domain')">By Domain</button>
-  </div>`;
+function hoverGroup(idx) {
+  if (idx === activeIdx) return;
+  activeIdx = idx;
+  document.querySelectorAll('.group-item').forEach(el => {
+    el.classList.toggle('active', +el.dataset.gi === idx);
+  });
+  const entries = (currentGroups[idx] || {}).entries || [];
+  document.getElementById('shot-panel').innerHTML = entries.length
+    ? entries.map(e => shotCardHtml(e)).join('')
+    : '<div class="empty-panel">No screenshots in this period</div>';
 }
 
-// ── Screenshots ──────────────────────────────────────────────────────────────
+// ── Screenshots ───────────────────────────────────────────────────────────────
 async function loadShots() {
   const data = await api('/api/data');
   allEntries = data.screenshots;
@@ -241,73 +217,50 @@ async function loadShots() {
 
 function renderShots() {
   const container = document.getElementById('shots-content');
-  if (!allEntries.length) { container.innerHTML = viewBarHtml() + '<p class="empty">No screenshots yet.</p>'; return; }
+  const live = allEntries.filter(e => !e.deleted).length;
 
-  if (groupBy === 'all') {
-    const groups = {};
-    allEntries.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
-    let html = viewBarHtml();
-    for (const [date, items] of Object.entries(groups)) {
-      html += `<div class="day-label">${date} — ${items.length} item${items.length!==1?'s':''}</div><div class="grid">`;
-      for (const e of items) {
-        html += e.deleted ? tombCardHtml(e) : liveCardHtml(e);
-      }
-      html += '</div>';
+  const toggle = `<div class="toggle-bar">
+    <button class="tgl-btn${currentMode==='hour'?' active':''}" onclick="setMode('hour')">By Hour</button>
+    <button class="tgl-btn${currentMode==='domain'?' active':''}" onclick="setMode('domain')">By Domain</button>
+  </div>`;
+
+  if (!live) { container.innerHTML = toggle + '<p class="empty">No screenshots yet.</p>'; return; }
+
+  currentGroups = buildGroups(currentMode);
+  if (activeIdx < 0 || activeIdx >= currentGroups.length) activeIdx = 0;
+
+  let listHtml = '', lastDate = '';
+  currentGroups.forEach((g, i) => {
+    if (currentMode === 'hour') {
+      const [date, hour] = g.key.split(' · ');
+      if (date !== lastDate) { listHtml += `<div class="group-date">${date}</div>`; lastDate = date; }
+      listHtml += `<div class="group-item${i===activeIdx?' active':''}" data-gi="${i}" onmouseenter="hoverGroup(${i})">
+        <span class="g-label">${hour}</span><span class="g-count">${g.entries.length}</span></div>`;
+    } else {
+      listHtml += `<div class="group-item${i===activeIdx?' active':''}" data-gi="${i}" onmouseenter="hoverGroup(${i})">
+        <span class="g-label">${g.key}</span><span class="g-count">${g.entries.length}</span></div>`;
     }
-    container.innerHTML = html;
+  });
 
-  } else if (!activeGroup) {
-    const groups = buildGroups(groupBy);
-    const cards = groups.map(g => {
-      const thumbs = g.entries.slice(0,3).map(e =>
-        `<img class="folder-thumb" src="/screenshots/${e.file}" loading="lazy" alt="">`).join('');
-      const n = g.entries.length;
-      return `<div class="folder-card" onclick="openFolder(${JSON.stringify(g.key)})">
-        <div class="folder-thumbs">${thumbs}</div>
-        <div class="folder-info">
-          <span class="folder-label">${g.key}</span>
-          <span class="folder-count">${n} screenshot${n!==1?'s':''}</span>
-        </div>
-      </div>`;
-    }).join('');
-    container.innerHTML = viewBarHtml() + `<div class="folder-grid">${cards}</div>`;
+  const activeEntries = (currentGroups[activeIdx] || {}).entries || [];
+  const panelHtml = activeEntries.length
+    ? activeEntries.map(e => shotCardHtml(e)).join('')
+    : '<div class="empty-panel">No screenshots in this period</div>';
 
-  } else {
-    const groups = buildGroups(groupBy);
-    const group = groups.find(g => g.key === activeGroup);
-    const items = group ? group.entries : [];
-    const backLabel = groupBy === 'hour' ? 'All Hours' : 'All Sites';
-    let html = viewBarHtml()
-      + `<button class="back-btn" onclick="backToFolders()">← ${backLabel}</button>`
-      + `<div class="group-title">${activeGroup} — ${items.length} screenshot${items.length!==1?'s':''}</div>`
-      + `<div class="grid">`;
-    items.forEach(e => { html += liveCardHtml(e); });
-    html += '</div>';
-    container.innerHTML = html;
-  }
-}
-
-function liveCardHtml(e) {
-  return `<div class="card">
-    <img src="/screenshots/${e.file}" loading="lazy" onclick="openLb(this.src)" alt="">
-    <div class="card-meta">
-      <div class="row">
-        <span class="time">${e.display}</span>
-        <button class="btn-delete" onclick="deleteShot('${e.stem}','${e.domain||''}')">Delete</button>
-      </div>
-      <div class="row"><span class="domain">${e.domain || ''}</span></div>
-    </div>
+  container.innerHTML = toggle + `<div class="browser-body">
+    <div class="group-list">${listHtml}</div>
+    <div class="shot-panel" id="shot-panel">${panelHtml}</div>
   </div>`;
 }
 
-function tombCardHtml(e) {
-  return `<div class="card tombstone">
-    <div class="tomb-body">
-      <div class="tomb-icon">🚫</div>
-      <div class="tomb-label">Screenshot removed</div>
-      <div class="tomb-domain">${e.domain || ''}</div>
+function shotCardHtml(e) {
+  const t = e.display.match(/\d+:\d+:\d+ [AP]M/)?.[0] || e.display;
+  return `<div class="shot-card">
+    <img src="/screenshots/${e.file}" loading="lazy" onclick="openLb(this.src)" alt="" title="${e.display}">
+    <div class="shot-meta">
+      <span class="shot-time">${t}</span>
+      <button class="shot-del" onclick="deleteShot('${e.stem}','${e.domain||''}')">✕</button>
     </div>
-    <div class="card-meta"><span class="time">${e.display}</span></div>
   </div>`;
 }
 

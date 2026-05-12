@@ -21,25 +21,21 @@
   .gate-title span { color:#4a9eff; }
   .gate-box input {
     width:100%; background:#111; border:1px solid #333; border-radius:7px;
-    color:#e0e0e0; font-size:14px; padding:10px 14px; outline:none;
-    transition:border-color .15s;
+    color:#e0e0e0; font-size:14px; padding:10px 14px; outline:none; transition:border-color .15s;
   }
   .gate-box input:focus { border-color:#4a9eff; }
   .gate-box input.shake { animation:shake .3s; }
-  @keyframes shake {
-    0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)}
-  }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
   .gate-box button {
     width:100%; background:#4a9eff; border:none; border-radius:7px;
-    color:#000; font-size:13px; font-weight:700; padding:10px; cursor:pointer;
-    transition:opacity .15s;
+    color:#000; font-size:13px; font-weight:700; padding:10px; cursor:pointer; transition:opacity .15s;
   }
   .gate-box button:hover { opacity:.85; }
   .gate-err { font-size:11px; color:#e05555; min-height:14px; }
 </style>
 <style>
   :root {
-    --bg:#0f0f0f; --surface:#1a1a1a; --border:#252525; --text:#e0e0e0;
+    --bg:#0f0f0f; --surface:#1a1a1a; --surface2:#222; --border:#252525; --text:#e0e0e0;
     --muted:#666; --accent:#4a9eff; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -66,77 +62,51 @@
   .layout { display:grid; grid-template-columns:1fr 220px; gap:24px; align-items:start; }
   @media(max-width:860px) { .layout{grid-template-columns:1fr} .sidebar{display:none} }
 
-  /* View toggle */
-  .view-bar { display:flex; gap:6px; margin-bottom:18px; }
-  .vt-btn {
-    background:none; border:1px solid var(--border); color:var(--muted);
-    padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px;
-    font-weight:500; transition:.15s;
-  }
-  .vt-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
-  .vt-btn:hover:not(.active) { border-color:var(--accent); color:var(--text); }
+  /* Segmented toggle */
+  .toggle-bar { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:14px; }
+  .tgl-btn { background:none; border:none; border-right:1px solid var(--border); color:var(--muted); padding:7px 20px; cursor:pointer; font-size:13px; font-weight:500; transition:.12s; }
+  .tgl-btn:last-child { border-right:none; }
+  .tgl-btn.active { background:var(--accent); color:#fff; }
+  .tgl-btn:hover:not(.active) { background:rgba(74,158,255,.09); color:var(--text); }
 
-  /* Back button + group title */
-  .back-btn {
-    background:none; border:1px solid var(--border); color:var(--muted);
-    padding:6px 14px; border-radius:6px; cursor:pointer; font-size:12px;
-    font-weight:500; margin-bottom:14px; transition:.15s; display:inline-block;
-  }
-  .back-btn:hover { border-color:var(--accent); color:var(--text); }
-  .group-title { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin-bottom:14px; }
+  /* Browser: list + panel */
+  .browser-body { display:grid; grid-template-columns:200px 1fr; border:1px solid var(--border); border-radius:10px; overflow:hidden; min-height:400px; }
 
-  /* Folder grid */
-  .folder-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
-  .folder-card {
-    background:var(--surface); border:1px solid var(--border); border-radius:10px;
-    overflow:hidden; cursor:pointer; transition:transform .15s,border-color .15s,box-shadow .15s;
+  .group-list { border-right:1px solid var(--border); overflow-y:auto; max-height:62vh; }
+  .group-date {
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+    color:var(--muted); padding:9px 14px 4px; background:rgba(0,0,0,.25);
+    position:sticky; top:0; z-index:1;
   }
-  .folder-card:hover { transform:translateY(-2px); border-color:var(--accent); box-shadow:0 8px 28px rgba(74,158,255,.1); }
-  .folder-thumbs { position:relative; height:130px; background:#111; overflow:hidden; }
-  .folder-thumb {
-    position:absolute; width:150px; height:100px;
-    object-fit:cover; border-radius:5px; border:2px solid var(--bg);
+  .group-item {
+    padding:9px 14px 9px 12px; cursor:pointer; display:flex;
+    justify-content:space-between; align-items:center;
+    border-bottom:1px solid var(--border); border-left:2px solid transparent;
+    transition:background .08s, border-color .08s;
   }
-  .folder-thumb:nth-child(1) { left:8px;  top:24px; transform:rotate(-5deg); z-index:1; }
-  .folder-thumb:nth-child(2) { left:30px; top:12px; transform:rotate(0deg);  z-index:2; }
-  .folder-thumb:nth-child(3) { left:52px; top:2px;  transform:rotate(4deg);  z-index:3; box-shadow:2px 2px 8px rgba(0,0,0,.5); }
-  .folder-info { padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
-  .folder-label { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:74%; }
-  .folder-count { font-size:11px; color:var(--accent); white-space:nowrap; }
+  .group-item:last-child { border-bottom:none; }
+  .group-item:hover, .group-item.active { background:rgba(74,158,255,.07); border-left-color:var(--accent); }
+  .g-label { font-size:13px; font-weight:500; transition:color .08s; }
+  .group-item.active .g-label { color:var(--accent); }
+  .g-count { font-size:10px; color:var(--muted); background:rgba(255,255,255,.05); padding:2px 6px; border-radius:9px; }
 
-  /* Screenshot grid */
-  .day-label {
-    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.9px;
-    color:var(--muted); margin-bottom:12px; margin-top:28px;
-    padding-bottom:7px; border-bottom:1px solid var(--border);
+  /* Shot panel */
+  .shot-panel {
+    padding:14px; display:flex; flex-wrap:wrap; align-content:flex-start;
+    gap:10px; overflow-y:auto; max-height:62vh;
   }
-  .day-label:first-child { margin-top:0; }
-
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
-
-  .card {
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:10px; overflow:hidden; cursor:pointer;
-    transition:transform .15s, border-color .15s, box-shadow .15s;
+  .shot-thumb {
+    width:172px; height:113px; object-fit:cover; border-radius:7px;
+    cursor:pointer; border:2px solid transparent; flex-shrink:0;
+    transition:border-color .12s, transform .12s;
   }
-  .card:hover { transform:translateY(-2px); border-color:var(--accent); box-shadow:0 8px 28px rgba(74,158,255,.1); }
-  .card img { width:100%; height:195px; object-fit:cover; display:block; background:#111; }
-  .card-meta { padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
-  .card-meta .time { font-size:12px; font-weight:500; }
-  .card-meta .domain { font-size:11px; color:var(--accent); }
-
-  .card.tomb { cursor:default; opacity:.65; }
-  .card.tomb:hover { transform:none; border-color:var(--border); box-shadow:none; }
-  .tomb-body { height:195px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; background:#111; }
-  .tomb-icon { font-size:22px; opacity:.4; }
-  .tomb-label { font-size:11px; color:var(--muted); }
-  .tomb-domain { font-size:13px; color:var(--text); font-weight:500; }
+  .shot-thumb:hover { border-color:var(--accent); transform:scale(1.03); }
+  .empty-panel { display:flex; align-items:center; justify-content:center; width:100%; color:var(--muted); font-size:13px; }
 
   /* Sidebar */
   .sidebar { display:flex; flex-direction:column; gap:16px; }
   .s-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:15px; }
   .s-card h3 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:11px; }
-
   .stat-block { padding:10px 0; border-bottom:1px solid var(--border); }
   .stat-block:last-child { border-bottom:none; }
   .stat-domain { color:var(--accent); font-weight:600; font-size:12px; margin-bottom:7px; }
@@ -144,7 +114,6 @@
   .stat-cell { display:flex; flex-direction:column; gap:1px; }
   .stat-cell .val { font-size:13px; font-weight:600; }
   .stat-cell .lbl { font-size:9px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
-
   .ignore-chip { display:inline-block; background:#111; border:1px solid var(--border); border-radius:4px; padding:3px 7px; font-size:10px; color:var(--muted); font-family:monospace; margin:2px 2px 2px 0; }
 
   /* Lightbox */
@@ -200,7 +169,6 @@
 <main>
   <div class="layout">
     <div id="gallery"></div>
-
     <div class="sidebar">
       <div class="s-card">
         <h3>Top Sites This Week</h3>
@@ -227,14 +195,13 @@
 <script>
 const REFRESH_MS = 5 * 60 * 1000;
 let allEntries = [], viewEntries = [], lbIdx = 0, nextRefresh = Date.now() + REFRESH_MS;
-let groupBy = 'all', activeGroup = null;
+let currentMode = 'hour', currentGroups = [], activeIdx = -1;
 
 function fmtTime(s) {
   if (!s) return '';
   const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
   return h ? `${h}h ${m}m` : `${m}m`;
 }
-
 function weekKey() {
   const d = new Date(), yr = d.getFullYear();
   const wk = Math.ceil((d - new Date(yr,0,1)) / 604800000);
@@ -249,18 +216,18 @@ async function load() {
     ]);
     allEntries = await ir.json();
     const stats = await sr.json().catch(() => ({}));
-    renderGallery();
+    renderBrowser();
     renderStats(stats.visits || {});
     renderIgnored(stats.ignored_urls || []);
   } catch(e) {
-    document.getElementById("gallery").innerHTML = '<p style="color:var(--muted);padding:40px 0">Failed to load — retrying…</p>';
+    document.getElementById('gallery').innerHTML = '<p style="color:var(--muted);padding:40px 0">Failed to load — retrying…</p>';
   }
 }
 
-// ── Grouping helpers ──────────────────────────────────────────────────────────
+// ── Grouping ──────────────────────────────────────────────────────────────────
 
-function getGroupKey(e, by) {
-  if (by === 'hour') {
+function getGroupKey(e, mode) {
+  if (mode === 'hour') {
     const d = new Date(e.iso);
     const ds = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
     const h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
@@ -269,149 +236,132 @@ function getGroupKey(e, by) {
   return e.domain || 'unknown';
 }
 
-function buildGroups(by) {
+function buildGroups(mode) {
   const m = new Map();
   allEntries.filter(e => !e.deleted).forEach(e => {
-    const k = getGroupKey(e, by);
+    const k = getGroupKey(e, mode);
     if (!m.has(k)) m.set(k, { key: k, entries: [], sortIso: e.iso });
     m.get(k).entries.push(e);
   });
   const arr = [...m.values()];
-  if (by === 'hour') arr.sort((a, b) => b.sortIso.localeCompare(a.sortIso));
+  if (mode === 'hour') arr.sort((a, b) => b.sortIso.localeCompare(a.sortIso));
   else arr.sort((a, b) => b.entries.length - a.entries.length);
   return arr;
 }
 
-function setGroupBy(by) {
-  groupBy = by;
-  activeGroup = null;
-  renderGallery();
-}
-
-function openFolder(key) {
-  activeGroup = key;
-  renderGallery();
-}
-
-function backToFolders() {
-  activeGroup = null;
-  renderGallery();
-}
-
 // ── Render ────────────────────────────────────────────────────────────────────
 
-function viewBar() {
-  return `<div class="view-bar">
-    <button class="vt-btn ${groupBy==='all'?'active':''}" onclick="setGroupBy('all')">All</button>
-    <button class="vt-btn ${groupBy==='hour'?'active':''}" onclick="setGroupBy('hour')">By Hour</button>
-    <button class="vt-btn ${groupBy==='domain'?'active':''}" onclick="setGroupBy('domain')">By Domain</button>
-  </div>`;
+function setMode(mode) {
+  currentMode = mode;
+  activeIdx = 0;
+  renderBrowser();
 }
 
-function renderGallery() {
-  const gallery = document.getElementById("gallery");
-  const live = allEntries.filter(e => !e.deleted).length;
-  document.getElementById("refresh-info").textContent = `${live} screenshot${live!==1?'s':''}`;
+function hoverGroup(idx) {
+  if (idx === activeIdx) return;
+  activeIdx = idx;
+  document.querySelectorAll('.group-item').forEach(el => {
+    el.classList.toggle('active', +el.dataset.gi === idx);
+  });
+  const entries = (currentGroups[idx] || {}).entries || [];
+  viewEntries = entries;
+  document.getElementById('shot-panel').innerHTML = entries.length
+    ? entries.map((e, i) => `<img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">`)
+             .join('')
+    : '<div class="empty-panel">No screenshots in this period</div>';
+}
 
-  if (!allEntries.length) {
-    gallery.innerHTML = viewBar() + '<p style="color:var(--muted);padding:60px 0 0;text-align:center">No screenshots yet.<br>Daemon captures when you browse social media.</p>';
+function renderBrowser() {
+  currentGroups = buildGroups(currentMode);
+  if (activeIdx < 0 || activeIdx >= currentGroups.length) activeIdx = 0;
+
+  const gallery = document.getElementById('gallery');
+  const live = allEntries.filter(e => !e.deleted).length;
+  document.getElementById('refresh-info').textContent = `${live} screenshot${live!==1?'s':''}`;
+
+  const toggle = `<div class="toggle-bar">
+    <button class="tgl-btn${currentMode==='hour'?' active':''}" onclick="setMode('hour')">By Hour</button>
+    <button class="tgl-btn${currentMode==='domain'?' active':''}" onclick="setMode('domain')">By Domain</button>
+  </div>`;
+
+  if (!live) {
+    gallery.innerHTML = toggle + '<p style="color:var(--muted);padding:40px 0;text-align:center">No screenshots yet.<br>Daemon captures when you browse social media.</p>';
     return;
   }
 
-  if (groupBy === 'all') {
-    // Flat chronological view grouped by day
-    viewEntries = [];
-    const days = {};
-    allEntries.forEach(e => {
-      const vi = e.deleted ? -1 : (viewEntries.push(e) - 1);
-      (days[e.date] = days[e.date] || []).push({ ...e, _vi: vi });
-    });
-    gallery.innerHTML = viewBar() + Object.entries(days).map(([date, items]) => `
-      <div class="day-label">${date} — ${items.length} item${items.length!==1?'s':''}</div>
-      <div class="grid">${items.map(e => e.deleted ? tombCard(e) : liveCard(e)).join('')}</div>
-    `).join('');
+  // List HTML
+  let listHtml = '', lastDate = '';
+  currentGroups.forEach((g, i) => {
+    if (currentMode === 'hour') {
+      const [date, hour] = g.key.split(' · ');
+      if (date !== lastDate) {
+        listHtml += `<div class="group-date">${date}</div>`;
+        lastDate = date;
+      }
+      listHtml += `<div class="group-item${i===activeIdx?' active':''}" data-gi="${i}" onmouseenter="hoverGroup(${i})">
+        <span class="g-label">${hour}</span><span class="g-count">${g.entries.length}</span>
+      </div>`;
+    } else {
+      listHtml += `<div class="group-item${i===activeIdx?' active':''}" data-gi="${i}" onmouseenter="hoverGroup(${i})">
+        <span class="g-label">${g.key}</span><span class="g-count">${g.entries.length}</span>
+      </div>`;
+    }
+  });
 
-  } else if (!activeGroup) {
-    // Folder grid
-    viewEntries = [];
-    const groups = buildGroups(groupBy);
-    gallery.innerHTML = viewBar() + (groups.length
-      ? `<div class="folder-grid">${groups.map(folderCard).join('')}</div>`
-      : '<p style="color:var(--muted);padding:40px 0">No screenshots yet.</p>');
+  // Panel for active group
+  viewEntries = (currentGroups[activeIdx] || {}).entries || [];
+  const panelHtml = viewEntries.length
+    ? viewEntries.map((e, i) => `<img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">`).join('')
+    : '<div class="empty-panel">No screenshots in this period</div>';
 
-  } else {
-    // Expanded group
-    const groups = buildGroups(groupBy);
-    const group = groups.find(g => g.key === activeGroup);
-    viewEntries = group ? group.entries : [];
-    const items = viewEntries.map((e, i) => ({ ...e, _vi: i }));
-    const backLabel = groupBy === 'hour' ? 'All Hours' : 'All Sites';
-    gallery.innerHTML = viewBar()
-      + `<button class="back-btn" onclick="backToFolders()">← ${backLabel}</button>`
-      + `<div class="group-title">${activeGroup} — ${viewEntries.length} screenshot${viewEntries.length!==1?'s':''}</div>`
-      + `<div class="grid">${items.map(liveCard).join('')}</div>`;
-  }
-}
-
-function liveCard(e) {
-  return `<div class="card" onclick="openLb(${e._vi})">
-    <img src="screenshots/${e.file}" loading="lazy" alt="">
-    <div class="card-meta"><span class="time">${e.display}</span><span class="domain">${e.domain||''}</span></div>
+  gallery.innerHTML = toggle + `<div class="browser-body">
+    <div class="group-list">${listHtml}</div>
+    <div class="shot-panel" id="shot-panel">${panelHtml}</div>
   </div>`;
 }
 
-function tombCard(e) {
-  return `<div class="card tomb">
-    <div class="tomb-body">
-      <div class="tomb-icon">🚫</div>
-      <div class="tomb-label">Screenshot removed</div>
-      <div class="tomb-domain">${e.domain||'social media'}</div>
-    </div>
-    <div class="card-meta"><span class="time">${e.display}</span><span class="domain" style="color:var(--muted)">deleted</span></div>
-  </div>`;
-}
+// ── Lightbox ──────────────────────────────────────────────────────────────────
 
-function folderCard(group) {
-  const thumbs = group.entries.slice(0, 3)
-    .map(e => `<img class="folder-thumb" src="screenshots/${e.file}" loading="lazy" alt="">`)
-    .join('');
-  const n = group.entries.length;
-  return `<div class="folder-card" onclick="openFolder(${JSON.stringify(group.key)})">
-    <div class="folder-thumbs">${thumbs}</div>
-    <div class="folder-info">
-      <span class="folder-label">${group.key}</span>
-      <span class="folder-count">${n} screenshot${n!==1?'s':''}</span>
-    </div>
-  </div>`;
+function openLb(i) {
+  lbIdx = i; showLb();
+  document.getElementById('lb').classList.add('open');
 }
+function showLb() {
+  const e = viewEntries[lbIdx];
+  document.getElementById('lb-img').src = `screenshots/${e.file}`;
+  document.getElementById('lb-meta').textContent = e.display + (e.domain ? `  ·  ${e.domain}` : '');
+  document.getElementById('lb-prev').disabled = lbIdx === 0;
+  document.getElementById('lb-next').disabled = lbIdx === viewEntries.length - 1;
+}
+function lbStep(dir) {
+  const n = lbIdx + dir;
+  if (n >= 0 && n < viewEntries.length) { lbIdx = n; showLb(); }
+}
+function closeLb() { document.getElementById('lb').classList.remove('open'); }
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lb').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLb();
+  if (e.key === 'ArrowLeft') lbStep(-1);
+  if (e.key === 'ArrowRight') lbStep(1);
+});
 
 // ── Stats / Ignored ───────────────────────────────────────────────────────────
 
 function renderStats(visits) {
-  const el = document.getElementById("stats-list");
+  const el = document.getElementById('stats-list');
   const wk = weekKey();
-  const rows = Object.entries(visits)
-    .sort((a,b) => (b[1].total_visits||0)-(a[1].total_visits||0));
+  const rows = Object.entries(visits).sort((a,b) => (b[1].total_visits||0)-(a[1].total_visits||0));
   if (!rows.length) return;
-
   el.innerHTML = rows.map(([domain, v]) => {
-    const daily  = v.daily  || {};
-    const weekly = v.weekly || {};
-    const activeDays  = Math.max(Object.keys(daily).length,  1);
-    const activeWeeks = Math.max(Object.keys(weekly).length, 1);
-
-    const avgDailyClicks = (v.total_visits / activeDays).toFixed(1);
-    const avgDailyTime   = fmtTime(Math.round((v.total_time_seconds||0) / activeDays)) || '—';
-    const avgWeeklyTime  = fmtTime(Math.round((v.total_time_seconds||0) / activeWeeks)) || '—';
-    const thisWeekVisits = ((weekly[wk] || {}).visits) || 0;
-
+    const daily = v.daily||{}, weekly = v.weekly||{};
+    const ad = Math.max(Object.keys(daily).length,1), aw = Math.max(Object.keys(weekly).length,1);
     return `<div class="stat-block">
       <div class="stat-domain">${domain}</div>
       <div class="stat-grid">
-        <div class="stat-cell"><span class="val">${thisWeekVisits}</span><span class="lbl">this week</span></div>
-        <div class="stat-cell"><span class="val">${avgDailyClicks}</span><span class="lbl">avg/day</span></div>
-        <div class="stat-cell"><span class="val">${avgDailyTime}</span><span class="lbl">avg time/day</span></div>
-        <div class="stat-cell"><span class="val">${avgWeeklyTime}</span><span class="lbl">avg time/week</span></div>
+        <div class="stat-cell"><span class="val">${((weekly[wk]||{}).visits)||0}</span><span class="lbl">this week</span></div>
+        <div class="stat-cell"><span class="val">${(v.total_visits/ad).toFixed(1)}</span><span class="lbl">avg/day</span></div>
+        <div class="stat-cell"><span class="val">${fmtTime(Math.round((v.total_time_seconds||0)/ad))||'—'}</span><span class="lbl">avg time/day</span></div>
+        <div class="stat-cell"><span class="val">${fmtTime(Math.round((v.total_time_seconds||0)/aw))||'—'}</span><span class="lbl">avg time/wk</span></div>
       </div>
     </div>`;
   }).join('');
@@ -419,35 +369,8 @@ function renderStats(visits) {
 
 function renderIgnored(list) {
   if (!list.length) return;
-  document.getElementById("ignore-list").innerHTML = list.map(p => `<span class="ignore-chip">${p}</span>`).join('');
+  document.getElementById('ignore-list').innerHTML = list.map(p => `<span class="ignore-chip">${p}</span>`).join('');
 }
-
-// ── Lightbox ──────────────────────────────────────────────────────────────────
-
-function openLb(vi) {
-  if (vi < 0 || vi >= viewEntries.length) return;
-  lbIdx = vi;
-  showLb();
-  document.getElementById("lb").classList.add("open");
-}
-function showLb() {
-  const e = viewEntries[lbIdx];
-  document.getElementById("lb-img").src = `screenshots/${e.file}`;
-  document.getElementById("lb-meta").textContent = e.display + (e.domain ? `  ·  ${e.domain}` : '');
-  document.getElementById("lb-prev").disabled = lbIdx === 0;
-  document.getElementById("lb-next").disabled = lbIdx === viewEntries.length - 1;
-}
-function lbStep(dir) {
-  const next = lbIdx + dir;
-  if (next >= 0 && next < viewEntries.length) { lbIdx = next; showLb(); }
-}
-function closeLb() { document.getElementById("lb").classList.remove("open"); }
-document.addEventListener("keydown", e => {
-  if (!document.getElementById("lb").classList.contains("open")) return;
-  if (e.key==="Escape") closeLb();
-  if (e.key==="ArrowLeft") lbStep(-1);
-  if (e.key==="ArrowRight") lbStep(1);
-});
 
 // ── Auto-refresh ──────────────────────────────────────────────────────────────
 
@@ -455,19 +378,16 @@ setInterval(() => {
   const rem = Math.max(0, nextRefresh - Date.now());
   const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
   const live = allEntries.filter(e=>!e.deleted).length;
-  document.getElementById("refresh-info").textContent =
+  document.getElementById('refresh-info').textContent =
     `${live} screenshot${live!==1?'s':''} — refreshes in ${m}:${String(s).padStart(2,'0')}`;
-  if (rem===0) { nextRefresh=Date.now()+REFRESH_MS; load(); }
+  if (rem === 0) { nextRefresh = Date.now() + REFRESH_MS; load(); }
 }, 1000);
 
 // ── Password gate ─────────────────────────────────────────────────────────────
 
 (function() {
-  if (sessionStorage.getItem('lh_auth') === '1') {
-    document.getElementById('gate').classList.add('hidden');
-  }
-  const inp = document.getElementById('gate-pw');
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter') gateCheck(); });
+  if (sessionStorage.getItem('lh_auth') === '1') document.getElementById('gate').classList.add('hidden');
+  document.getElementById('gate-pw').addEventListener('keydown', e => { if (e.key === 'Enter') gateCheck(); });
 })();
 
 function gateCheck() {
@@ -477,16 +397,13 @@ function gateCheck() {
     document.getElementById('gate').classList.add('hidden');
   } else {
     document.getElementById('gate-err').textContent = 'Wrong password.';
-    inp.value = '';
-    inp.classList.remove('shake');
-    void inp.offsetWidth;
-    inp.classList.add('shake');
+    inp.value = ''; inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
   }
 }
 
 load();
 
-// ── Hawk flap animation ───────────────────────────────────────────────────────
+// ── Hawk flap ─────────────────────────────────────────────────────────────────
 
 const HAWK_FRAMES = [
 `  \\  _,_  /
@@ -512,11 +429,8 @@ const HAWK_FRAMES = [
    ═══════   `
 ];
 let hawkFrame = 1;
-const hawkEl = document.getElementById("hawk-anim");
-setInterval(() => {
-  hawkFrame = (hawkFrame + 1) % HAWK_FRAMES.length;
-  hawkEl.textContent = HAWK_FRAMES[hawkFrame];
-}, 380);
+const hawkEl = document.getElementById('hawk-anim');
+setInterval(() => { hawkFrame = (hawkFrame+1) % HAWK_FRAMES.length; hawkEl.textContent = HAWK_FRAMES[hawkFrame]; }, 380);
 </script>
 </body>
 </html>
