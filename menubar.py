@@ -64,55 +64,23 @@ _PLIST_TEMPLATE = """\
 """
 
 
-def _make_icon(color: tuple, name: str, text: str):
-    """Render a single-line icon with thick stroke. Returns (path, pt_w, 22)."""
-    try:
-        from PIL import Image, ImageDraw, ImageFont
+def _ns_color(rgb_tuple):
+    import AppKit
+    r, g, b, a = [c / 255.0 for c in rgb_tuple]
+    return AppKit.NSColor.colorWithCalibratedRed_green_blue_alpha_(r, g, b, a)
 
-        FONT_PX = 24
-        STROKE  = 2    # stroke makes thin monospace chars look bold
-        PAD     = 4
 
-        font = None
-        for c in ["/System/Library/Fonts/Menlo.ttc", "/Library/Fonts/Menlo.ttc"]:
-            try:
-                font = ImageFont.truetype(c, FONT_PX)
-                break
-            except Exception:
-                pass
-        if font is None:
-            font = ImageFont.load_default()
-
-        probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        try:
-            b = probe.textbbox((0, 0), text, font=font)
-            tw, th = b[2] - b[0], b[3] - b[1]
-        except AttributeError:
-            tw, th = probe.textsize(text, font=font)
-
-        W = tw + PAD * 2 + STROKE * 2
-        H = th + PAD * 2 + STROKE * 2
-
-        img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        d   = ImageDraw.Draw(img)
-        x   = PAD + STROKE
-        y   = PAD + STROKE
-        try:
-            d.text((x, y), text, fill=color, font=font,
-                   stroke_width=STROKE, stroke_fill=color)
-        except TypeError:
-            d.text((x, y), text, fill=color, font=font)
-
-        # Pin to 44px tall = 22pt @2x, scale width proportionally
-        TARGET = 44
-        W2 = max(1, round(W * TARGET / H))
-        img = img.resize((W2, TARGET), Image.LANCZOS)
-
-        path = Path(tempfile.gettempdir()) / f"loghawk_icon_{name}.png"
-        img.save(str(path))
-        return str(path), round(W2 / 2), 22
-    except Exception:
-        return None, 0, 0
+def _ns_attr_title(text: str, color_tuple: tuple):
+    """Build an NSAttributedString for use as a colored menu bar title."""
+    import AppKit
+    import Foundation
+    font = (AppKit.NSFont.fontWithName_size_("Menlo-Bold", 13)
+            or AppKit.NSFont.menuBarFontOfSize_(0))
+    attrs = {
+        AppKit.NSForegroundColorAttributeName: _ns_color(color_tuple),
+        AppKit.NSFontAttributeName: font,
+    }
+    return Foundation.NSAttributedString.alloc().initWithString_attributes_(text, attrs)
 
 
 def _plist_exists() -> bool:
@@ -156,14 +124,7 @@ class LogHawkApp(rumps.App):
     _RED   = (239, 68, 68, 255)
 
     def __init__(self):
-        self._icon_on  = _make_icon(self._GREEN, "on",  "(o,o)")
-        self._icon_off = _make_icon(self._RED,   "off", "(x,x)")
-        super().__init__(
-            "Log Hawk",
-            icon=self._icon_on[0],
-            template=False,
-            quit_button=None,
-        )
+        super().__init__("Log Hawk", quit_button=None)
 
         self._recording = True
         self._stop_evt  = threading.Event()
@@ -187,22 +148,15 @@ class LogHawkApp(rumps.App):
             rumps.MenuItem("Quit Log Hawk",  callback=self.on_quit),
         ]
 
-        self._apply_icon(self._icon_on)
+        self._set_face("(o,o)", self._GREEN)
         self._start_loop()
 
-    def _apply_icon(self, icon_tuple):
-        """Load icon, declare its pt size, then push to the status bar button."""
-        path, pt_w, pt_h = icon_tuple
-        if not path:
-            return
+    def _set_face(self, text: str, color: tuple):
+        """Set menu bar text via NSAttributedString — no image, no scaling issues."""
         try:
-            import AppKit
-            img = AppKit.NSImage.alloc().initWithContentsOfFile_(path)
-            img.setSize_(AppKit.NSSize(pt_w, pt_h))   # must happen before setImage_
-            self._status_item.button().setImage_(img)
-            self._icon_path = path                     # keep rumps state in sync
+            self._status_item.button().setAttributedTitle_(_ns_attr_title(text, color))
         except Exception:
-            self.icon = path                           # fallback
+            self.title = text   # plain-text fallback
 
     # ── daemon loop ──────────────────────────────────────────────────────────
 
@@ -267,12 +221,12 @@ class LogHawkApp(rumps.App):
             self._stop_evt.set()
             self.toggle_item.title = "Resume Recording"
             self.status_item.title = "○ Paused"
-            self._apply_icon(self._icon_off)
+            self._set_face("(x,x)", self._RED)
         else:
             self._recording = True
             self.toggle_item.title = "Pause Recording"
             self.status_item.title = "● Recording"
-            self._apply_icon(self._icon_on)
+            self._set_face("(o,o)", self._GREEN)
             self._start_loop()
 
     def on_dashboard(self, _):
