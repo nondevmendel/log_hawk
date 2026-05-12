@@ -101,6 +101,14 @@
     transition:border-color .12s, transform .12s;
   }
   .shot-thumb:hover { border-color:var(--accent); transform:scale(1.03); }
+  .shot-tomb {
+    width:172px; height:113px; border-radius:7px; flex-shrink:0;
+    background:#111; border:2px solid var(--border);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    opacity:.5; cursor:default;
+  }
+  .shot-tomb .tomb-icon { font-size:18px; }
+  .shot-tomb .tomb-lbl { font-size:10px; color:var(--muted); }
   .empty-panel { display:flex; align-items:center; justify-content:center; width:100%; color:var(--muted); font-size:13px; }
 
   /* Sidebar */
@@ -233,8 +241,10 @@ async function load() {
 
 // ── Grouping ──────────────────────────────────────────────────────────────────
 
-function getFilteredEntries() {
-  return allEntries.filter(e => !e.deleted && (!selectedDate || e.iso.startsWith(selectedDate)));
+function getFilteredEntries(includeDeleted = false) {
+  return allEntries.filter(e =>
+    (includeDeleted || !e.deleted) && (!selectedDate || e.iso.startsWith(selectedDate))
+  );
 }
 
 function getUniqueDates() {
@@ -258,7 +268,7 @@ function getGroupKey(e, mode) {
 
 function buildGroups(mode) {
   const m = new Map();
-  getFilteredEntries().forEach(e => {
+  getFilteredEntries(true).forEach(e => {
     const k = getGroupKey(e, mode);
     if (!m.has(k)) m.set(k, { key: k, entries: [], sortIso: e.iso });
     m.get(k).entries.push(e);
@@ -283,6 +293,16 @@ function setDate(val) {
   renderBrowser();
 }
 
+function shotThumb(e, i) {
+  if (e.deleted) {
+    return `<div class="shot-tomb" title="${e.display}">
+      <span class="tomb-icon">🚫</span>
+      <span class="tomb-lbl">removed</span>
+    </div>`;
+  }
+  return `<img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">`;
+}
+
 function hoverGroup(idx) {
   if (idx === activeIdx) return;
   activeIdx = idx;
@@ -292,7 +312,7 @@ function hoverGroup(idx) {
   const entries = (currentGroups[idx] || {}).entries || [];
   viewEntries = entries;
   document.getElementById('shot-panel').innerHTML = entries.length
-    ? entries.map((e, i) => `<img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">`).join('')
+    ? entries.map(shotThumb).join('')
     : '<div class="empty-panel">No screenshots in this period</div>';
 }
 
@@ -336,12 +356,14 @@ function renderBrowser() {
         listHtml += `<div class="group-date">${date}</div>`;
         lastDate = date;
       }
+      const liveCount = g.entries.filter(e => !e.deleted).length;
       listHtml += `<div class="group-item${i===activeIdx?' active':''}" data-gi="${i}" onmouseenter="hoverGroup(${i})">
-        <span class="g-label">${hour}</span><span class="g-count">${g.entries.length}</span>
+        <span class="g-label">${hour}</span><span class="g-count">${liveCount}</span>
       </div>`;
     } else {
+      const liveCount = g.entries.filter(e => !e.deleted).length;
       listHtml += `<div class="group-item${i===activeIdx?' active':''}" data-gi="${i}" onmouseenter="hoverGroup(${i})">
-        <span class="g-label">${g.key}</span><span class="g-count">${g.entries.length}</span>
+        <span class="g-label">${g.key}</span><span class="g-count">${liveCount}</span>
       </div>`;
     }
   });
@@ -349,7 +371,7 @@ function renderBrowser() {
   // Panel for active group
   viewEntries = (currentGroups[activeIdx] || {}).entries || [];
   const panelHtml = viewEntries.length
-    ? viewEntries.map((e, i) => `<img class="shot-thumb" src="screenshots/${e.file}" loading="lazy" onclick="openLb(${i})" alt="" title="${e.display}">`).join('')
+    ? viewEntries.map(shotThumb).join('')
     : '<div class="empty-panel">No screenshots in this period</div>';
 
   gallery.innerHTML = `<div class="browser-body">
@@ -361,6 +383,7 @@ function renderBrowser() {
 // ── Lightbox ──────────────────────────────────────────────────────────────────
 
 function openLb(i) {
+  if (!viewEntries[i] || viewEntries[i].deleted) return;
   lbIdx = i; showLb();
   document.getElementById('lb').classList.add('open');
 }
