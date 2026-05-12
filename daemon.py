@@ -85,7 +85,20 @@ SENSITIVE_REGEXES = [
 ]
 
 
+CONFIG_FILE = REPO_DIR / "config.json"
+
+
 # ════════════════════════════════════════════════════════════════════════════
+
+def load_ignored_urls():
+    """Read config.json and return the list of ignored URL substrings."""
+    try:
+        with open(CONFIG_FILE) as f:
+            data = json.load(f)
+        return [s.lower() for s in data.get("ignored_urls", [])]
+    except Exception:
+        return []
+
 
 def log(msg: str):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -132,6 +145,12 @@ def is_social_media(url: str) -> bool:
         )
     except Exception:
         return False
+
+
+def is_ignored(url: str, ignored: list) -> bool:
+    """Return True if the URL matches any pattern in the ignore list."""
+    url_lower = url.lower()
+    return any(pattern in url_lower for pattern in ignored)
 
 
 def title_looks_sensitive(url: str) -> bool:
@@ -323,15 +342,17 @@ def main():
     next_shot_gap  = random.randint(MIN_SHOT_GAP, MAX_SHOT_GAP)
 
     while True:
+        ignored = load_ignored_urls()
         url = get_active_browser_url()
 
         if url:
             on_social = is_social_media(url)
+            ignored_match = is_ignored(url, ignored)
             sensitive = title_looks_sensitive(url)
             now = time.time()
             time_since_last = now - last_shot_time
 
-            if on_social and not sensitive and time_since_last >= next_shot_gap:
+            if on_social and not ignored_match and not sensitive and time_since_last >= next_shot_gap:
                 log(f"On social media: {url[:80]}")
                 result = take_screenshot(url)
                 if result:
@@ -341,6 +362,8 @@ def main():
                     last_shot_time = time.time()
                     next_shot_gap  = random.randint(MIN_SHOT_GAP, MAX_SHOT_GAP)
                     log(f"Next shot in {next_shot_gap // 60}m {next_shot_gap % 60}s")
+            elif ignored_match:
+                log(f"Ignored URL, skipping: {url[:60]}")
             elif not on_social:
                 log(f"Not social media, skipping: {url[:60]}")
             elif sensitive:
