@@ -84,6 +84,28 @@ main{padding:24px;max-width:1600px;margin:0 auto}
 .btn-add:hover{opacity:.85}
 .empty{color:var(--muted);font-size:13px;padding:24px 0;text-align:center}
 
+/* View toggle */
+.view-bar{display:flex;gap:6px;margin-bottom:18px}
+.vt-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;transition:.15s}
+.vt-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.vt-btn:hover:not(.active){border-color:var(--accent);color:var(--text)}
+.back-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;margin-bottom:14px;transition:.15s;display:inline-block}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:14px}
+
+/* Folder grid */
+.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.folder-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}
+.folder-card:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 8px 28px rgba(74,158,255,.1)}
+.folder-thumbs{position:relative;height:130px;background:#111;overflow:hidden}
+.folder-thumb{position:absolute;width:150px;height:100px;object-fit:cover;border-radius:5px;border:2px solid var(--bg)}
+.folder-thumb:nth-child(1){left:8px;top:24px;transform:rotate(-5deg);z-index:1}
+.folder-thumb:nth-child(2){left:30px;top:12px;transform:rotate(0deg);z-index:2}
+.folder-thumb:nth-child(3){left:52px;top:2px;transform:rotate(4deg);z-index:3;box-shadow:2px 2px 8px rgba(0,0,0,.5)}
+.folder-info{padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
+.folder-label{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:74%}
+.folder-count{font-size:11px;color:var(--accent);white-space:nowrap}
+
 /* Stats */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:4px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
@@ -149,7 +171,7 @@ __/)X(\__
 <div id="lb"><button id="lb-close" onclick="closeLb()">×</button><img id="lb-img" src="" alt=""></div>
 
 <script>
-let currentIgnored = [];
+let currentIgnored = [], allEntries = [], groupBy = 'all', activeGroup = null;
 
 function status(msg, isErr) {
   const el = document.getElementById('status-bar');
@@ -174,49 +196,119 @@ function switchTab(name) {
   if (name === 'stats') renderStats();
 }
 
+// ── Grouping helpers ─────────────────────────────────────────────────────────
+function getGroupKey(e, by) {
+  if (by === 'hour') {
+    const d = new Date(e.iso);
+    const ds = d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+    const h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
+    return `${ds} · ${h % 12 || 12}:00 ${ampm}`;
+  }
+  return e.domain || 'unknown';
+}
+
+function buildGroups(by) {
+  const m = new Map();
+  allEntries.filter(e => !e.deleted).forEach(e => {
+    const k = getGroupKey(e, by);
+    if (!m.has(k)) m.set(k, { key: k, entries: [], sortIso: e.iso });
+    m.get(k).entries.push(e);
+  });
+  const arr = [...m.values()];
+  if (by === 'hour') arr.sort((a, b) => b.sortIso.localeCompare(a.sortIso));
+  else arr.sort((a, b) => b.entries.length - a.entries.length);
+  return arr;
+}
+
+function setGroupBy(by) { groupBy = by; activeGroup = null; renderShots(); }
+function openFolder(key) { activeGroup = key; renderShots(); }
+function backToFolders() { activeGroup = null; renderShots(); }
+
+function viewBarHtml() {
+  return `<div class="view-bar">
+    <button class="vt-btn ${groupBy==='all'?'active':''}" onclick="setGroupBy('all')">All</button>
+    <button class="vt-btn ${groupBy==='hour'?'active':''}" onclick="setGroupBy('hour')">By Hour</button>
+    <button class="vt-btn ${groupBy==='domain'?'active':''}" onclick="setGroupBy('domain')">By Domain</button>
+  </div>`;
+}
+
 // ── Screenshots ──────────────────────────────────────────────────────────────
 async function loadShots() {
   const data = await api('/api/data');
-  const entries = data.screenshots;
+  allEntries = data.screenshots;
+  renderShots();
+}
+
+function renderShots() {
   const container = document.getElementById('shots-content');
-  if (!entries.length) { container.innerHTML = '<p class="empty">No screenshots yet.</p>'; return; }
+  if (!allEntries.length) { container.innerHTML = viewBarHtml() + '<p class="empty">No screenshots yet.</p>'; return; }
 
-  const groups = {};
-  entries.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
-
-  let html = '';
-  for (const [date, items] of Object.entries(groups)) {
-    html += `<div class="day-label">${date} — ${items.length} item${items.length!==1?'s':''}</div><div class="grid">`;
-    for (const e of items) {
-      if (e.deleted) {
-        html += `
-          <div class="card tombstone">
-            <div class="tomb-body">
-              <div class="tomb-icon">🚫</div>
-              <div class="tomb-label">Screenshot removed</div>
-              <div class="tomb-domain">${e.domain || ''}</div>
-            </div>
-            <div class="card-meta">
-              <span class="time">${e.display}</span>
-            </div>
-          </div>`;
-      } else {
-        html += `
-          <div class="card">
-            <img src="/screenshots/${e.file}" loading="lazy" onclick="openLb(this.src)" alt="">
-            <div class="card-meta">
-              <div class="row">
-                <span class="time">${e.display}</span>
-                <button class="btn-delete" onclick="deleteShot('${e.stem}','${e.domain||''}')">Delete</button>
-              </div>
-              <div class="row"><span class="domain">${e.domain || ''}</span></div>
-            </div>
-          </div>`;
+  if (groupBy === 'all') {
+    const groups = {};
+    allEntries.forEach(e => { (groups[e.date] = groups[e.date] || []).push(e); });
+    let html = viewBarHtml();
+    for (const [date, items] of Object.entries(groups)) {
+      html += `<div class="day-label">${date} — ${items.length} item${items.length!==1?'s':''}</div><div class="grid">`;
+      for (const e of items) {
+        html += e.deleted ? tombCardHtml(e) : liveCardHtml(e);
       }
+      html += '</div>';
     }
+    container.innerHTML = html;
+
+  } else if (!activeGroup) {
+    const groups = buildGroups(groupBy);
+    const cards = groups.map(g => {
+      const thumbs = g.entries.slice(0,3).map(e =>
+        `<img class="folder-thumb" src="/screenshots/${e.file}" loading="lazy" alt="">`).join('');
+      const n = g.entries.length;
+      return `<div class="folder-card" onclick="openFolder(${JSON.stringify(g.key)})">
+        <div class="folder-thumbs">${thumbs}</div>
+        <div class="folder-info">
+          <span class="folder-label">${g.key}</span>
+          <span class="folder-count">${n} screenshot${n!==1?'s':''}</span>
+        </div>
+      </div>`;
+    }).join('');
+    container.innerHTML = viewBarHtml() + `<div class="folder-grid">${cards}</div>`;
+
+  } else {
+    const groups = buildGroups(groupBy);
+    const group = groups.find(g => g.key === activeGroup);
+    const items = group ? group.entries : [];
+    const backLabel = groupBy === 'hour' ? 'All Hours' : 'All Sites';
+    let html = viewBarHtml()
+      + `<button class="back-btn" onclick="backToFolders()">← ${backLabel}</button>`
+      + `<div class="group-title">${activeGroup} — ${items.length} screenshot${items.length!==1?'s':''}</div>`
+      + `<div class="grid">`;
+    items.forEach(e => { html += liveCardHtml(e); });
     html += '</div>';
+    container.innerHTML = html;
   }
-  container.innerHTML = html;
+}
+
+function liveCardHtml(e) {
+  return `<div class="card">
+    <img src="/screenshots/${e.file}" loading="lazy" onclick="openLb(this.src)" alt="">
+    <div class="card-meta">
+      <div class="row">
+        <span class="time">${e.display}</span>
+        <button class="btn-delete" onclick="deleteShot('${e.stem}','${e.domain||''}')">Delete</button>
+      </div>
+      <div class="row"><span class="domain">${e.domain || ''}</span></div>
+    </div>
+  </div>`;
+}
+
+function tombCardHtml(e) {
+  return `<div class="card tombstone">
+    <div class="tomb-body">
+      <div class="tomb-icon">🚫</div>
+      <div class="tomb-label">Screenshot removed</div>
+      <div class="tomb-domain">${e.domain || ''}</div>
+    </div>
+    <div class="card-meta"><span class="time">${e.display}</span></div>
+  </div>`;
 }
 
 async function deleteShot(stem, domain) {
