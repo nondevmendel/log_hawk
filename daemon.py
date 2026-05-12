@@ -65,7 +65,8 @@ def grab_screen():
         length = _cf.CFDataGetLength(data_ref)
         ptr = _cf.CFDataGetBytePtr(data_ref)
         raw = (ctypes.c_uint8 * length).from_address(ptr)
-        img = Image.frombytes('RGBA', (w, h), bytes(raw), 'raw', 'BGRA')
+        # bpr may be padded; pass stride so PIL reads rows correctly
+        img = Image.frombuffer('RGBA', (w, h), bytes(raw), 'raw', 'BGRA', bpr, 1)
         _cf.CFRelease(data_ref)
         return img.convert('RGB')
     finally:
