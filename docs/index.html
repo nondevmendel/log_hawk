@@ -3,357 +3,264 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Screen Log</title>
+<title>Log Hawk</title>
 <style>
   :root {
-    --bg: #0f0f0f;
-    --surface: #1a1a1a;
-    --border: #2a2a2a;
-    --text: #e0e0e0;
-    --muted: #888;
-    --accent: #4a9eff;
-    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg:#0f0f0f; --surface:#1a1a1a; --border:#252525; --text:#e0e0e0;
+    --muted:#666; --accent:#4a9eff; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    min-height: 100vh;
-  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font); min-height:100vh; }
 
   header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(15,15,15,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    position:sticky; top:0; z-index:100;
+    background:rgba(15,15,15,.94); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border);
+    padding:14px 28px; display:flex; align-items:center; gap:20px;
   }
+  .logo { display:flex; align-items:center; gap:14px; }
+  .hawk-ascii { font-family:monospace; font-size:9px; line-height:1.25; color:var(--accent); white-space:pre; opacity:.85; }
+  .logo-text h1 { font-size:18px; font-weight:700; letter-spacing:-.3px; }
+  .logo-text h1 span { color:var(--accent); }
+  .logo-text p { font-size:11px; color:var(--muted); margin-top:1px; }
+  .header-right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  #dot { width:7px; height:7px; border-radius:50%; background:#4caf50; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.35} }
+  #refresh-info { font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
-  header h1 {
-    font-size: 17px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-  }
+  main { padding:24px 28px; max-width:1600px; margin:0 auto; }
 
-  header h1 span { color: var(--accent); }
-
-  #status {
-    font-size: 12px;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  #dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: #4CAF50;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%,100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  #countdown {
-    font-size: 12px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  main {
-    padding: 24px;
-    max-width: 1600px;
-    margin: 0 auto;
-  }
-
-  #day-group { margin-bottom: 40px; }
+  .layout { display:grid; grid-template-columns:1fr 220px; gap:24px; align-items:start; }
+  @media(max-width:860px) { .layout{grid-template-columns:1fr} .sidebar{display:none} }
 
   .day-label {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    margin-bottom: 14px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.9px;
+    color:var(--muted); margin-bottom:12px; margin-top:28px;
+    padding-bottom:7px; border-bottom:1px solid var(--border);
   }
+  .day-label:first-child { margin-top:0; }
 
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 14px;
-  }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
 
   .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; overflow:hidden; cursor:pointer;
+    transition:transform .15s, border-color .15s, box-shadow .15s;
   }
+  .card:hover { transform:translateY(-2px); border-color:var(--accent); box-shadow:0 8px 28px rgba(74,158,255,.1); }
+  .card img { width:100%; height:195px; object-fit:cover; display:block; background:#111; }
+  .card-meta { padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
+  .card-meta .time { font-size:12px; font-weight:500; }
+  .card-meta .domain { font-size:11px; color:var(--accent); }
 
-  .card:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent);
-    box-shadow: 0 8px 32px rgba(74,158,255,0.12);
-  }
+  .card.tomb { cursor:default; opacity:.65; }
+  .card.tomb:hover { transform:none; border-color:var(--border); box-shadow:none; }
+  .tomb-body { height:195px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; background:#111; }
+  .tomb-icon { font-size:22px; opacity:.4; }
+  .tomb-label { font-size:11px; color:var(--muted); }
+  .tomb-domain { font-size:13px; color:var(--text); font-weight:500; }
 
-  .card img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    display: block;
-    background: #111;
-  }
+  .sidebar { display:flex; flex-direction:column; gap:16px; }
+  .s-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:15px; }
+  .s-card h3 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:11px; }
 
-  .card-meta {
-    padding: 10px 12px;
-    font-size: 12px;
-    color: var(--muted);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+  .stat-row { display:flex; justify-content:space-between; align-items:flex-start; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .stat-row:last-child { border-bottom:none; }
+  .stat-domain { color:var(--accent); font-weight:500; max-width:110px; word-break:break-all; }
+  .stat-right { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .stat-v { font-weight:600; }
+  .stat-t { font-size:10px; color:var(--muted); }
 
-  .card-meta .time { color: var(--text); font-weight: 500; }
-  .card-meta .idx { color: var(--border); }
+  .ignore-chip { display:inline-block; background:#111; border:1px solid var(--border); border-radius:4px; padding:3px 7px; font-size:10px; color:var(--muted); font-family:monospace; margin:2px 2px 2px 0; }
 
-  /* Lightbox */
-  #lb {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    background: rgba(0,0,0,0.92);
-    backdrop-filter: blur(8px);
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-  }
-  #lb.open { display: flex; }
-
-  #lb img {
-    max-width: 95vw;
-    max-height: 85vh;
-    border-radius: 8px;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.8);
-  }
-
-  #lb-meta {
-    font-size: 13px;
-    color: var(--muted);
-    text-align: center;
-  }
-
-  #lb-close {
-    position: absolute;
-    top: 20px; right: 24px;
-    background: none;
-    border: none;
-    color: var(--muted);
-    font-size: 28px;
-    cursor: pointer;
-    line-height: 1;
-    transition: color 0.1s;
-  }
-  #lb-close:hover { color: var(--text); }
-
-  #lb-nav {
-    display: flex;
-    gap: 12px;
-  }
-  #lb-nav button {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 8px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    transition: border-color 0.1s;
-  }
-  #lb-nav button:hover { border-color: var(--accent); }
-  #lb-nav button:disabled { opacity: 0.3; cursor: default; }
-
-  #empty {
-    display: none;
-    text-align: center;
-    padding: 80px 20px;
-    color: var(--muted);
-  }
-  #empty h2 { font-size: 18px; margin-bottom: 8px; color: var(--text); }
-
-  #loading {
-    text-align: center;
-    padding: 80px 20px;
-    color: var(--muted);
-    font-size: 14px;
-  }
+  #lb { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.9); backdrop-filter:blur(8px); align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+  #lb.open { display:flex; }
+  #lb img { max-width:95vw; max-height:87vh; border-radius:8px; box-shadow:0 32px 80px rgba(0,0,0,.8); }
+  #lb-meta { font-size:12px; color:var(--muted); }
+  #lb-close { position:absolute; top:18px; right:22px; background:none; border:none; color:var(--muted); font-size:30px; cursor:pointer; }
+  #lb-close:hover { color:var(--text); }
+  #lb-nav { display:flex; gap:10px; }
+  #lb-nav button { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:7px 18px; border-radius:6px; cursor:pointer; font-size:12px; }
+  #lb-nav button:disabled { opacity:.3; cursor:default; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Screen <span>Log</span></h1>
-  <div id="status">
-    <div id="dot"></div>
-    <span id="count">Loading…</span>
+  <div class="logo">
+    <pre class="hawk-ascii">  __
+ /oo\
+ |  |__
+/|  |  \
+\|  |  /
+ \|_|_/
+  ||||
+ ======</pre>
+    <div class="logo-text">
+      <h1>Log <span>Hawk</span></h1>
+      <p>live screen log — social media only</p>
+    </div>
   </div>
-  <div id="countdown"></div>
+  <div class="header-right">
+    <span id="dot"></span>
+    <span id="refresh-info">Loading…</span>
+  </div>
 </header>
 
 <main>
-  <div id="loading">Loading screenshots…</div>
-  <div id="empty">
-    <h2>No screenshots yet</h2>
-    <p>The daemon will post its first screenshot soon.</p>
+  <div class="layout">
+    <div id="gallery"></div>
+
+    <div class="sidebar">
+      <div class="s-card">
+        <h3>Top Sites This Week</h3>
+        <div id="stats-list"><span style="font-size:12px;color:var(--muted)">No data yet</span></div>
+      </div>
+      <div class="s-card">
+        <h3>Currently Ignored</h3>
+        <div id="ignore-list"><span style="font-size:12px;color:var(--muted)">Nothing ignored</span></div>
+      </div>
+    </div>
   </div>
-  <div id="gallery"></div>
 </main>
 
-<!-- Lightbox -->
 <div id="lb">
-  <button id="lb-close" title="Close">×</button>
+  <button id="lb-close" onclick="closeLb()">×</button>
   <img id="lb-img" src="" alt="">
   <div id="lb-meta"></div>
   <div id="lb-nav">
-    <button id="lb-prev">← Newer</button>
-    <button id="lb-next">Older →</button>
+    <button id="lb-prev" onclick="lbStep(-1)">← Newer</button>
+    <button id="lb-next" onclick="lbStep(1)">Older →</button>
   </div>
 </div>
 
 <script>
-const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 min
-let allEntries = [];
-let lbIndex = 0;
+const REFRESH_MS = 5 * 60 * 1000;
+let allEntries = [], lbIdx = 0, nextRefresh = Date.now() + REFRESH_MS;
+
+function fmtTime(s) {
+  if (!s) return '';
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60);
+  return h ? `${h}h ${m}m` : `${m}m`;
+}
+
+function weekKey() {
+  const d = new Date(), yr = d.getFullYear();
+  const wk = Math.ceil((d - new Date(yr,0,1)) / 604800000);
+  return `${yr}-W${String(wk).padStart(2,'0')}`;
+}
 
 async function load() {
   try {
-    const res = await fetch(`index.json?t=${Date.now()}`);
-    allEntries = await res.json();
-    render(allEntries);
-  } catch (e) {
-    document.getElementById("loading").textContent = "Failed to load — retrying…";
+    const [ir, sr] = await Promise.all([
+      fetch(`index.json?t=${Date.now()}`),
+      fetch(`stats.json?t=${Date.now()}`),
+    ]);
+    allEntries = await ir.json();
+    const stats = await sr.json().catch(() => ({}));
+    renderGallery();
+    renderStats(stats.visits || {});
+    renderIgnored(stats.ignored_urls || []);
+  } catch(e) {
+    document.getElementById("gallery").innerHTML = '<p style="color:var(--muted);padding:40px 0">Failed to load — retrying…</p>';
   }
 }
 
-function render(entries) {
-  document.getElementById("loading").style.display = "none";
+function renderGallery() {
   const gallery = document.getElementById("gallery");
-  const empty = document.getElementById("empty");
+  const live = allEntries.filter(e => !e.deleted).length;
+  document.getElementById("refresh-info").textContent = `${live} screenshot${live!==1?'s':''}`;
 
-  if (!entries.length) {
-    empty.style.display = "block";
-    document.getElementById("count").textContent = "0 screenshots";
+  if (!allEntries.length) {
+    gallery.innerHTML = '<p style="color:var(--muted);padding:60px 0 0;text-align:center">No screenshots yet.<br>Daemon captures when you browse social media.</p>';
     return;
   }
 
-  empty.style.display = "none";
-  document.getElementById("count").textContent =
-    `${entries.length} screenshot${entries.length !== 1 ? "s" : ""}`;
-
-  // Group by date
   const groups = {};
-  entries.forEach((e, i) => {
-    const d = e.date;
-    if (!groups[d]) groups[d] = [];
-    groups[d].push({ ...e, globalIndex: i });
-  });
+  allEntries.forEach((e, i) => { (groups[e.date] = groups[e.date]||[]).push({...e,i}); });
 
-  gallery.innerHTML = "";
-  Object.entries(groups).forEach(([date, items]) => {
-    const section = document.createElement("div");
-    section.className = "day-group";
-    section.innerHTML = `<div class="day-label">${date} &mdash; ${items.length} screenshot${items.length !== 1 ? "s" : ""}</div>`;
-    const grid = document.createElement("div");
-    grid.className = "grid";
-
-    items.forEach(item => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <img src="screenshots/${item.file}" alt="${item.display}" loading="lazy">
-        <div class="card-meta">
-          <span class="time">${item.display}</span>
-          <span class="idx">#${item.globalIndex + 1}</span>
-        </div>`;
-      card.addEventListener("click", () => openLightbox(item.globalIndex));
-      grid.appendChild(card);
-    });
-
-    section.appendChild(grid);
-    gallery.appendChild(section);
-  });
+  gallery.innerHTML = Object.entries(groups).map(([date, items]) => `
+    <div class="day-label">${date} — ${items.length} item${items.length!==1?'s':''}</div>
+    <div class="grid">${items.map(e => e.deleted ? tombCard(e) : liveCard(e)).join('')}</div>
+  `).join('');
 }
 
-function openLightbox(index) {
-  lbIndex = index;
-  updateLightbox();
-  document.getElementById("lb").classList.add("open");
+function liveCard(e) {
+  return `<div class="card" onclick="openLb(${e.i})">
+    <img src="screenshots/${e.file}" loading="lazy" alt="">
+    <div class="card-meta"><span class="time">${e.display}</span><span class="domain">${e.domain||''}</span></div>
+  </div>`;
 }
 
-function updateLightbox() {
-  const e = allEntries[lbIndex];
+function tombCard(e) {
+  return `<div class="card tomb">
+    <div class="tomb-body">
+      <div class="tomb-icon">🚫</div>
+      <div class="tomb-label">Screenshot removed</div>
+      <div class="tomb-domain">${e.domain||'unknown domain'}</div>
+    </div>
+    <div class="card-meta"><span class="time">${e.display}</span><span class="domain" style="color:var(--muted)">deleted</span></div>
+  </div>`;
+}
+
+function renderStats(visits) {
+  const el = document.getElementById("stats-list");
+  const wk = weekKey();
+  const rows = Object.entries(visits)
+    .sort((a,b) => (b[1].total_visits||0)-(a[1].total_visits||0));
+  if (!rows.length) return;
+  el.innerHTML = rows.map(([domain, v]) => {
+    const wd = (v.weekly||{})[wk] || {};
+    return `<div class="stat-row">
+      <span class="stat-domain">${domain}</span>
+      <div class="stat-right">
+        <span class="stat-v">${wd.visits||0} visits</span>
+        ${wd.time_seconds ? `<span class="stat-t">${fmtTime(wd.time_seconds)}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderIgnored(list) {
+  if (!list.length) return;
+  document.getElementById("ignore-list").innerHTML = list.map(p => `<span class="ignore-chip">${p}</span>`).join('');
+}
+
+function openLb(idx) {
+  lbIdx = idx;
+  if (allEntries[lbIdx]?.deleted) return;
+  showLb(); document.getElementById("lb").classList.add("open");
+}
+function showLb() {
+  const e = allEntries[lbIdx];
   document.getElementById("lb-img").src = `screenshots/${e.file}`;
-  document.getElementById("lb-meta").textContent = e.display;
-  document.getElementById("lb-prev").disabled = lbIndex === 0;
-  document.getElementById("lb-next").disabled = lbIndex === allEntries.length - 1;
+  document.getElementById("lb-meta").textContent = e.display + (e.domain ? `  ·  ${e.domain}` : '');
+  document.getElementById("lb-prev").disabled = !allEntries.slice(0,lbIdx).some(x=>!x.deleted);
+  document.getElementById("lb-next").disabled = !allEntries.slice(lbIdx+1).some(x=>!x.deleted);
 }
-
-document.getElementById("lb-close").addEventListener("click", () => {
-  document.getElementById("lb").classList.remove("open");
-});
-document.getElementById("lb").addEventListener("click", e => {
-  if (e.target === document.getElementById("lb")) {
-    document.getElementById("lb").classList.remove("open");
-  }
-});
-document.getElementById("lb-prev").addEventListener("click", () => {
-  if (lbIndex > 0) { lbIndex--; updateLightbox(); }
-});
-document.getElementById("lb-next").addEventListener("click", () => {
-  if (lbIndex < allEntries.length - 1) { lbIndex++; updateLightbox(); }
-});
+function lbStep(dir) {
+  let i = lbIdx + dir;
+  while (i>=0 && i<allEntries.length && allEntries[i].deleted) i+=dir;
+  if (i>=0 && i<allEntries.length) { lbIdx=i; showLb(); }
+}
+function closeLb() { document.getElementById("lb").classList.remove("open"); }
 document.addEventListener("keydown", e => {
-  const lb = document.getElementById("lb");
-  if (!lb.classList.contains("open")) return;
-  if (e.key === "Escape") lb.classList.remove("open");
-  if (e.key === "ArrowLeft" && lbIndex > 0) { lbIndex--; updateLightbox(); }
-  if (e.key === "ArrowRight" && lbIndex < allEntries.length - 1) { lbIndex++; updateLightbox(); }
+  if (!document.getElementById("lb").classList.contains("open")) return;
+  if (e.key==="Escape") closeLb();
+  if (e.key==="ArrowLeft") lbStep(-1);
+  if (e.key==="ArrowRight") lbStep(1);
 });
 
-// Auto-refresh countdown
-let nextRefresh = Date.now() + REFRESH_INTERVAL;
-function tick() {
-  const remaining = Math.max(0, nextRefresh - Date.now());
-  const m = Math.floor(remaining / 60000);
-  const s = Math.floor((remaining % 60000) / 1000);
-  document.getElementById("countdown").textContent =
-    `Refreshes in ${m}:${String(s).padStart(2, "0")}`;
-  if (remaining === 0) {
-    nextRefresh = Date.now() + REFRESH_INTERVAL;
-    load();
-  }
-}
+setInterval(() => {
+  const rem = Math.max(0, nextRefresh - Date.now());
+  const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000);
+  const live = allEntries.filter(e=>!e.deleted).length;
+  document.getElementById("refresh-info").textContent =
+    `${live} screenshot${live!==1?'s':''} — refreshes in ${m}:${String(s).padStart(2,'0')}`;
+  if (rem===0) { nextRefresh=Date.now()+REFRESH_MS; load(); }
+}, 1000);
 
 load();
-setInterval(tick, 1000);
-tick();
 </script>
 </body>
 </html>
