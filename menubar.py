@@ -60,9 +60,8 @@ _PLIST_TEMPLATE = """\
 """
 
 
-def _make_icon():
-    """Render the ASCII hawk face as a black-on-transparent PNG.
-    Returns temp file path, or None if PIL unavailable."""
+def _make_icon(color: tuple, name: str):
+    """Render the ASCII hawk face in `color` as a PNG. Returns file path or None."""
     try:
         from PIL import Image, ImageDraw, ImageFont
 
@@ -89,24 +88,23 @@ def _make_icon():
                 b = probe.textbbox((0, 0), text, font=font)
                 return b[2] - b[0], b[3] - b[1]
             except AttributeError:
-                return probe.textsize(text, font=font)  # older Pillow
+                return probe.textsize(text, font=font)
 
-        sizes   = [_bbox(l) for l in lines]
-        pad     = 2
+        sizes    = [_bbox(l) for l in lines]
+        pad      = 2
         line_gap = 1
         W = max(s[0] for s in sizes) + pad * 2
         H = sum(s[1] for s in sizes) + pad * 2 + line_gap * (len(lines) - 1)
 
         img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d   = ImageDraw.Draw(img)
-        c   = (0, 0, 0, 255)
 
         y = pad
-        for line, (w, h) in zip(lines, sizes):
-            d.text((pad, y), line, fill=c, font=font)
+        for line, (_, h) in zip(lines, sizes):
+            d.text((pad, y), line, fill=color, font=font)
             y += h + line_gap
 
-        path = Path(tempfile.gettempdir()) / "loghawk_icon.png"
+        path = Path(tempfile.gettempdir()) / f"loghawk_icon_{name}.png"
         img.save(str(path))
         return str(path)
     except Exception:
@@ -133,12 +131,17 @@ def _remove_plist():
 
 class LogHawkApp(rumps.App):
 
+    # green = recording, red = paused
+    _GREEN = (34, 197, 94, 255)
+    _RED   = (239, 68, 68, 255)
+
     def __init__(self):
-        icon = _make_icon()
+        self._icon_on  = _make_icon(self._GREEN, "on")
+        self._icon_off = _make_icon(self._RED,   "off")
         super().__init__(
             "Log Hawk",
-            icon=icon,
-            template=True if icon else None,
+            icon=self._icon_on,
+            template=False,
             quit_button=None,
         )
 
@@ -229,10 +232,14 @@ class LogHawkApp(rumps.App):
             self._stop_evt.set()
             self.toggle_item.title = "Resume Recording"
             self.status_item.title = "○ Paused"
+            if self._icon_off:
+                self.icon = self._icon_off
         else:
             self._recording = True
             self.toggle_item.title = "Pause Recording"
             self.status_item.title = "● Recording"
+            if self._icon_on:
+                self.icon = self._icon_on
             self._start_loop()
 
     def on_dashboard(self, _):
