@@ -1,18 +1,18 @@
 {
   "facebook.com": {
-    "total_visits": 25,
-    "total_time_seconds": 2020,
-    "last_visit": "2026-05-12T16:07:46.134791",
+    "total_visits": 26,
+    "total_time_seconds": 2040,
+    "last_visit": "2026-05-12T17:45:50.639685",
     "daily": {
       "2026-05-12": {
-        "visits": 25,
-        "time_seconds": 2020
+        "visits": 26,
+        "time_seconds": 2040
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 25,
-        "time_seconds": 2020
+        "visits": 26,
+        "time_seconds": 2040
       }
     }
   },
@@ -86,18 +86,18 @@
   },
   "reddit.com": {
     "total_visits": 1,
-    "total_time_seconds": 20,
+    "total_time_seconds": 60,
     "last_visit": "2026-05-12T16:25:43.423503",
     "daily": {
       "2026-05-12": {
         "visits": 1,
-        "time_seconds": 20
+        "time_seconds": 60
       }
     },
     "weekly": {
       "2026-W20": {
         "visits": 1,
-        "time_seconds": 20
+        "time_seconds": 60
       }
     }
   }
