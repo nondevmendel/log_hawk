@@ -64,12 +64,13 @@
   .s-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:15px; }
   .s-card h3 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:11px; }
 
-  .stat-row { display:flex; justify-content:space-between; align-items:flex-start; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; }
-  .stat-row:last-child { border-bottom:none; }
-  .stat-domain { color:var(--accent); font-weight:500; max-width:110px; word-break:break-all; }
-  .stat-right { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
-  .stat-v { font-weight:600; }
-  .stat-t { font-size:10px; color:var(--muted); }
+  .stat-block { padding:10px 0; border-bottom:1px solid var(--border); }
+  .stat-block:last-child { border-bottom:none; }
+  .stat-domain { color:var(--accent); font-weight:600; font-size:12px; margin-bottom:7px; }
+  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; }
+  .stat-cell { display:flex; flex-direction:column; gap:1px; }
+  .stat-cell .val { font-size:13px; font-weight:600; }
+  .stat-cell .lbl { font-size:9px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); }
 
   .ignore-chip { display:inline-block; background:#111; border:1px solid var(--border); border-radius:4px; padding:3px 7px; font-size:10px; color:var(--muted); font-family:monospace; margin:2px 2px 2px 0; }
 
@@ -209,13 +210,26 @@ function renderStats(visits) {
   const rows = Object.entries(visits)
     .sort((a,b) => (b[1].total_visits||0)-(a[1].total_visits||0));
   if (!rows.length) return;
+
   el.innerHTML = rows.map(([domain, v]) => {
-    const wd = (v.weekly||{})[wk] || {};
-    return `<div class="stat-row">
-      <span class="stat-domain">${domain}</span>
-      <div class="stat-right">
-        <span class="stat-v">${wd.visits||0} visits</span>
-        ${wd.time_seconds ? `<span class="stat-t">${fmtTime(wd.time_seconds)}</span>` : ''}
+    const daily  = v.daily  || {};
+    const weekly = v.weekly || {};
+    const activeDays  = Math.max(Object.keys(daily).length,  1);
+    const activeWeeks = Math.max(Object.keys(weekly).length, 1);
+
+    const avgDailyClicks = (v.total_visits / activeDays).toFixed(1);
+    const avgDailyTime   = fmtTime(Math.round((v.total_time_seconds||0) / activeDays)) || '—';
+    const avgWeeklyTime  = fmtTime(Math.round((v.total_time_seconds||0) / activeWeeks)) || '—';
+    const thisWeek       = (weekly[wk] || {});
+    const thisWeekVisits = thisWeek.visits || 0;
+
+    return `<div class="stat-block">
+      <div class="stat-domain">${domain}</div>
+      <div class="stat-grid">
+        <div class="stat-cell"><span class="val">${thisWeekVisits}</span><span class="lbl">this week</span></div>
+        <div class="stat-cell"><span class="val">${avgDailyClicks}</span><span class="lbl">avg/day</span></div>
+        <div class="stat-cell"><span class="val">${avgDailyTime}</span><span class="lbl">avg time/day</span></div>
+        <div class="stat-cell"><span class="val">${avgWeeklyTime}</span><span class="lbl">avg time/week</span></div>
       </div>
     </div>`;
   }).join('');
