@@ -188,9 +188,25 @@ def load_ignored_urls():
         return []
 
 
+def get_frontmost_app():
+    try:
+        r = subprocess.run(
+            ["osascript", "-e",
+             'tell application "System Events" to get name of first application process whose frontmost is true'],
+            capture_output=True, text=True, timeout=3)
+        return r.stdout.strip()
+    except Exception:
+        return ""
+
+BROWSER_APPS = {"Google Chrome", "Safari", "Microsoft Edge"}
+
 def get_active_browser_url():
-    # Collect active-tab URLs from all windows of each browser.
-    # Prefer social media URLs; fall back to first http URL found.
+    # Only scan if a browser is actually frontmost — avoids desktop screenshots.
+    # Scan all tabs so a social media tab in any window is detected.
+    frontmost = get_frontmost_app()
+    if frontmost not in BROWSER_APPS:
+        return None
+
     scripts = {
         "Chrome": '''
 tell application "Google Chrome"
