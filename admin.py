@@ -194,14 +194,10 @@ async function loadShots() {
             <div class="tomb-body">
               <div class="tomb-icon">🚫</div>
               <div class="tomb-label">Screenshot removed</div>
-              <div class="tomb-domain">${e.domain || 'social media'}</div>
-              <div class="tomb-del-at">${e.display}</div>
+              <div class="tomb-domain">${e.domain || ''}</div>
             </div>
             <div class="card-meta">
-              <div class="row">
-                <span class="time">${e.display}</span>
-                <button class="btn-forget" onclick="forget('${e.stem}')">Forget completely</button>
-              </div>
+              <span class="time">${e.display}</span>
             </div>
           </div>`;
       } else {
@@ -233,15 +229,6 @@ async function deleteShot(stem, domain) {
   } catch(e) { status('Error: ' + e, true); }
 }
 
-async function forget(stem) {
-  if (!confirm('Remove the tombstone entirely? No trace will remain on the public gallery.')) return;
-  status('Removing tombstone…');
-  try {
-    await api('/api/forget', 'POST', { stem });
-    status('Tombstone removed.');
-    loadShots();
-  } catch(e) { status('Error: ' + e, true); }
-}
 
 // ── Ignore list ──────────────────────────────────────────────────────────────
 async function renderIgnore() {
@@ -456,7 +443,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
 
         if path in ("/", "/index.html"):
-            body = ADMIN_HTML.encode()
+            body = ADMIN_HTML.encode()  # re-read from module string (restart server to pick up changes)
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
