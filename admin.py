@@ -112,7 +112,7 @@ __/)X(\__
     <button class="tab" onclick="switchTab('ignore')">Ignore List</button>
     <button class="tab" onclick="switchTab('stats')">Visit Stats</button>
   </div>
-  <a class="pub-link" href="https://nondevmendel.github.io/screen-log/" target="_blank">View Public Gallery ↗</a>
+  <a class="pub-link" href="https://nondevmendel.github.io/log_hawk/" target="_blank">View Public Gallery ↗</a>
 </header>
 <div id="status-bar">Ready</div>
 
