@@ -116,9 +116,9 @@ META_FILE = SHOTS_DIR / "metadata.json"   # {stem: {domain, deleted?, deleted_at
 VISITS_FILE = REPO_DIR / "visits.json"    # {domain: {visits, last_visit}}
 
 # ── timing ─────────────────────────────────────────────────────────────────
-POLL_INTERVAL = 30
-MIN_SHOT_GAP  = 2 * 60
-MAX_SHOT_GAP  = 4 * 60
+POLL_INTERVAL = 20
+MIN_SHOT_GAP  = 60
+MAX_SHOT_GAP  = 2 * 60
 MAX_AGE_HOURS = 48
 
 # ── image settings ─────────────────────────────────────────────────────────
@@ -223,56 +223,33 @@ def load_ignored_urls():
         return []
 
 
-def get_frontmost_app():
-    try:
-        r = subprocess.run(
-            ["osascript", "-e",
-             'tell application "System Events" to get name of first application process whose frontmost is true'],
-            capture_output=True, text=True, timeout=3)
-        return r.stdout.strip()
-    except Exception:
-        return ""
-
-BROWSER_APPS = {"Google Chrome", "Safari", "Microsoft Edge"}
-
 def get_active_browser_url():
-    # Only capture when a browser is frontmost AND has a visible (non-minimized) window.
-    # Use the active tab of the first visible window — this is what the user is actually seeing.
-    frontmost = get_frontmost_app()
-    if frontmost not in BROWSER_APPS:
-        return None
-
-    # Check that the browser has at least one non-minimized window visible on screen
-    vis_check = f'''
-tell application "System Events"
-  tell process "{frontmost}"
-    set visWins to (windows whose value of attribute "AXMinimized" is false)
-    return (count of visWins) as string
-  end tell
-end tell'''
-    try:
-        r = subprocess.run(["osascript", "-e", vis_check],
-                           capture_output=True, text=True, timeout=3)
-        if r.stdout.strip() == "0":
-            return None  # all windows minimized — desktop is visible
-    except Exception:
-        pass
-
-    url_scripts = {
-        "Google Chrome": 'tell application "Google Chrome" to get URL of active tab of front window',
-        "Safari":        'tell application "Safari" to get URL of current tab of front window',
-        "Microsoft Edge":'tell application "Microsoft Edge" to get URL of active tab of front window',
+    # Check all known browsers regardless of which app is frontmost.
+    # Uses "if application X is running" guard to avoid accidentally launching a browser.
+    browser_scripts = {
+        "Google Chrome": '''if application "Google Chrome" is running then
+    tell application "Google Chrome" to return URL of active tab of front window
+end if
+return ""''',
+        "Safari": '''if application "Safari" is running then
+    tell application "Safari" to return URL of current tab of front window
+end if
+return ""''',
+        "Microsoft Edge": '''if application "Microsoft Edge" is running then
+    tell application "Microsoft Edge" to return URL of active tab of front window
+end if
+return ""''',
     }
-    script = url_scripts.get(frontmost)
-    if not script:
-        return None
-    try:
-        result = subprocess.run(["osascript", "-e", script],
-                                capture_output=True, text=True, timeout=5)
-        url = result.stdout.strip()
-        return url if url.startswith("http") else None
-    except Exception:
-        return None
+    for app, script in browser_scripts.items():
+        try:
+            result = subprocess.run(["osascript", "-e", script],
+                                    capture_output=True, text=True, timeout=5)
+            url = result.stdout.strip()
+            if url.startswith("http"):
+                return url
+        except Exception:
+            pass
+    return None
 
 
 def is_social_media(url):
@@ -535,6 +512,9 @@ def git_push(msg=None):
         commit_msg = msg or f"screenshot {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
         subprocess.run(["git", "-C", str(REPO_DIR), "commit", "-m", commit_msg],
                        check=True, capture_output=True)
+        # Pull remote changes before pushing (code changes from another machine)
+        subprocess.run(["git", "-C", str(REPO_DIR), "pull", "--rebase", "--autostash"],
+                       capture_output=True)
         result = subprocess.run(["git", "-C", str(REPO_DIR), "push"],
                                 capture_output=True, text=True)
         if result.returncode == 0:
