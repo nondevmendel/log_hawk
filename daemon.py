@@ -10,23 +10,66 @@ screenlog daemon
 - Pushes to GitHub Pages (docs/ folder in this repo)
 """
 
+import ctypes
 import json
 import os
 import random
 import re
 import subprocess
 import sys
-import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
 try:
-    from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageGrab
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
 except ImportError:
     subprocess.run([sys.executable, "-m", "pip", "install", "pillow"], check=True)
-    from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageGrab
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+# ── CoreGraphics screen capture (avoids screencapture subprocess TCC issues) ──
+_cg = ctypes.CDLL('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
+_cf = ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+_cg.CGMainDisplayID.restype = ctypes.c_uint32
+_cg.CGDisplayCreateImage.restype = ctypes.c_void_p
+_cg.CGDisplayCreateImage.argtypes = [ctypes.c_uint32]
+_cg.CGImageGetWidth.restype = ctypes.c_size_t
+_cg.CGImageGetWidth.argtypes = [ctypes.c_void_p]
+_cg.CGImageGetHeight.restype = ctypes.c_size_t
+_cg.CGImageGetHeight.argtypes = [ctypes.c_void_p]
+_cg.CGImageGetBytesPerRow.restype = ctypes.c_size_t
+_cg.CGImageGetBytesPerRow.argtypes = [ctypes.c_void_p]
+_cg.CGImageGetDataProvider.restype = ctypes.c_void_p
+_cg.CGImageGetDataProvider.argtypes = [ctypes.c_void_p]
+_cg.CGDataProviderCopyData.restype = ctypes.c_void_p
+_cg.CGDataProviderCopyData.argtypes = [ctypes.c_void_p]
+_cg.CGImageRelease.argtypes = [ctypes.c_void_p]
+_cf.CFDataGetLength.restype = ctypes.c_long
+_cf.CFDataGetLength.argtypes = [ctypes.c_void_p]
+_cf.CFDataGetBytePtr.restype = ctypes.c_void_p
+_cf.CFDataGetBytePtr.argtypes = [ctypes.c_void_p]
+_cf.CFRelease.argtypes = [ctypes.c_void_p]
+
+def grab_screen():
+    display = _cg.CGMainDisplayID()
+    img_ref = _cg.CGDisplayCreateImage(display)
+    if not img_ref:
+        return None
+    try:
+        w = _cg.CGImageGetWidth(img_ref)
+        h = _cg.CGImageGetHeight(img_ref)
+        bpr = _cg.CGImageGetBytesPerRow(img_ref)
+        provider = _cg.CGImageGetDataProvider(img_ref)
+        data_ref = _cg.CGDataProviderCopyData(provider)
+        length = _cf.CFDataGetLength(data_ref)
+        ptr = _cf.CFDataGetBytePtr(data_ref)
+        raw = (ctypes.c_uint8 * length).from_address(ptr)
+        img = Image.frombytes('RGBA', (w, h), bytes(raw), 'raw', 'BGRA')
+        _cf.CFRelease(data_ref)
+        return img.convert('RGB')
+    finally:
+        _cg.CGImageRelease(img_ref)
 
 # ── paths ──────────────────────────────────────────────────────────────────
 REPO_DIR  = Path(__file__).parent
@@ -145,22 +188,65 @@ def load_ignored_urls():
 
 
 def get_active_browser_url():
+    # Collect active-tab URLs from all windows of each browser.
+    # Prefer social media URLs; fall back to first http URL found.
     scripts = {
-        "Chrome": 'tell application "Google Chrome" to get URL of active tab of front window',
-        "Safari": 'tell application "Safari" to get URL of current tab of front window',
-        "Firefox": 'tell application "Firefox" to get URL of active tab of front window',
-        "Edge":   'tell application "Microsoft Edge" to get URL of active tab of front window',
+        "Chrome": '''
+tell application "Google Chrome"
+  set out to ""
+  repeat with w in windows
+    repeat with t in tabs of w
+      try
+        set u to URL of t
+        if u starts with "http" then set out to out & u & linefeed
+      end try
+    end repeat
+  end repeat
+  return out
+end tell''',
+        "Safari": '''
+tell application "Safari"
+  set out to ""
+  repeat with w in windows
+    repeat with t in tabs of w
+      try
+        set u to URL of t
+        if u starts with "http" then set out to out & u & linefeed
+      end try
+    end repeat
+  end repeat
+  return out
+end tell''',
+        "Edge": '''
+tell application "Microsoft Edge"
+  set out to ""
+  repeat with w in windows
+    repeat with t in tabs of w
+      try
+        set u to URL of t
+        if u starts with "http" then set out to out & u & linefeed
+      end try
+    end repeat
+  end repeat
+  return out
+end tell''',
     }
+    all_urls = []
     for browser, script in scripts.items():
         try:
             result = subprocess.run(["osascript", "-e", script],
-                                    capture_output=True, text=True, timeout=3)
-            url = result.stdout.strip()
-            if url and url.startswith("http"):
-                return url
+                                    capture_output=True, text=True, timeout=5)
+            for u in result.stdout.strip().splitlines():
+                u = u.strip()
+                if u.startswith("http"):
+                    all_urls.append(u)
         except Exception:
             pass
-    return None
+    # Prefer social media URLs
+    for u in all_urls:
+        if is_social_media(u):
+            return u
+    return all_urls[0] if all_urls else None
 
 
 def is_social_media(url):
@@ -301,11 +387,10 @@ def take_screenshot(url, domain):
     final_path = SHOTS_DIR / f"{stem}.jpg"
 
     try:
-        img = ImageGrab.grab()
+        img = grab_screen()
         if img is None:
-            log("ImageGrab.grab() returned None — Screen Recording permission may be missing")
+            log("grab_screen() returned None — Screen Recording permission may be missing")
             return None
-        img = img.convert("RGB")
         if img.width > MAX_WIDTH:
             ratio = MAX_WIDTH / img.width
             img = img.resize((MAX_WIDTH, int(img.height * ratio)), Image.LANCZOS)
