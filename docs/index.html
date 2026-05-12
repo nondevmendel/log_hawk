@@ -6,6 +6,38 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Log Hawk</title>
 <style>
+  #gate {
+    position:fixed; inset:0; z-index:9999;
+    background:#0f0f0f; display:flex; align-items:center; justify-content:center;
+  }
+  #gate.hidden { display:none; }
+  .gate-box {
+    background:#1a1a1a; border:1px solid #252525; border-radius:12px;
+    padding:36px 40px; display:flex; flex-direction:column; align-items:center; gap:18px;
+    width:320px;
+  }
+  .gate-hawk { font-family:monospace; font-size:9px; line-height:1.25; color:#4a9eff; white-space:pre; opacity:.85; }
+  .gate-title { font-size:17px; font-weight:700; letter-spacing:-.3px; }
+  .gate-title span { color:#4a9eff; }
+  .gate-box input {
+    width:100%; background:#111; border:1px solid #333; border-radius:7px;
+    color:#e0e0e0; font-size:14px; padding:10px 14px; outline:none;
+    transition:border-color .15s;
+  }
+  .gate-box input:focus { border-color:#4a9eff; }
+  .gate-box input.shake { animation:shake .3s; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)}
+  }
+  .gate-box button {
+    width:100%; background:#4a9eff; border:none; border-radius:7px;
+    color:#000; font-size:13px; font-weight:700; padding:10px; cursor:pointer;
+    transition:opacity .15s;
+  }
+  .gate-box button:hover { opacity:.85; }
+  .gate-err { font-size:11px; color:#e05555; min-height:14px; }
+</style>
+<style>
   :root {
     --bg:#0f0f0f; --surface:#1a1a1a; --border:#252525; --text:#e0e0e0;
     --muted:#666; --accent:#4a9eff; --font:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
@@ -87,6 +119,22 @@
 </style>
 </head>
 <body>
+
+<div id="gate">
+  <div class="gate-box">
+    <pre class="gate-hawk">     _,_
+    (o,o)
+ __/ )X( \__
+/  _/ | \_  \
+\_/   |   \_/
+      |||
+   ═══════</pre>
+    <div class="gate-title">Log <span>Hawk</span></div>
+    <input id="gate-pw" type="password" placeholder="Password" autofocus>
+    <button onclick="gateCheck()">Enter</button>
+    <div class="gate-err" id="gate-err"></div>
+  </div>
+</div>
 
 <header>
   <div class="logo">
@@ -273,6 +321,29 @@ setInterval(() => {
     `${live} screenshot${live!==1?'s':''} — refreshes in ${m}:${String(s).padStart(2,'0')}`;
   if (rem===0) { nextRefresh=Date.now()+REFRESH_MS; load(); }
 }, 1000);
+
+// Password gate
+(function() {
+  if (sessionStorage.getItem('lh_auth') === '1') {
+    document.getElementById('gate').classList.add('hidden');
+  }
+  const inp = document.getElementById('gate-pw');
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') gateCheck(); });
+})();
+
+function gateCheck() {
+  const inp = document.getElementById('gate-pw');
+  if (inp.value === 'rebbe') {
+    sessionStorage.setItem('lh_auth', '1');
+    document.getElementById('gate').classList.add('hidden');
+  } else {
+    document.getElementById('gate-err').textContent = 'Wrong password.';
+    inp.value = '';
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+  }
+}
 
 load();
 
