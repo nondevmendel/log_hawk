@@ -201,69 +201,43 @@ def get_frontmost_app():
 BROWSER_APPS = {"Google Chrome", "Safari", "Microsoft Edge"}
 
 def get_active_browser_url():
-    # Only scan if a browser is actually frontmost — avoids desktop screenshots.
-    # Scan all tabs so a social media tab in any window is detected.
+    # Only capture when a browser is frontmost AND has a visible (non-minimized) window.
+    # Use the active tab of the first visible window — this is what the user is actually seeing.
     frontmost = get_frontmost_app()
     if frontmost not in BROWSER_APPS:
         return None
 
-    scripts = {
-        "Chrome": '''
-tell application "Google Chrome"
-  set out to ""
-  repeat with w in windows
-    repeat with t in tabs of w
-      try
-        set u to URL of t
-        if u starts with "http" then set out to out & u & linefeed
-      end try
-    end repeat
-  end repeat
-  return out
-end tell''',
-        "Safari": '''
-tell application "Safari"
-  set out to ""
-  repeat with w in windows
-    repeat with t in tabs of w
-      try
-        set u to URL of t
-        if u starts with "http" then set out to out & u & linefeed
-      end try
-    end repeat
-  end repeat
-  return out
-end tell''',
-        "Edge": '''
-tell application "Microsoft Edge"
-  set out to ""
-  repeat with w in windows
-    repeat with t in tabs of w
-      try
-        set u to URL of t
-        if u starts with "http" then set out to out & u & linefeed
-      end try
-    end repeat
-  end repeat
-  return out
-end tell''',
+    # Check that the browser has at least one non-minimized window visible on screen
+    vis_check = f'''
+tell application "System Events"
+  tell process "{frontmost}"
+    set visWins to (windows whose value of attribute "AXMinimized" is false)
+    return (count of visWins) as string
+  end tell
+end tell'''
+    try:
+        r = subprocess.run(["osascript", "-e", vis_check],
+                           capture_output=True, text=True, timeout=3)
+        if r.stdout.strip() == "0":
+            return None  # all windows minimized — desktop is visible
+    except Exception:
+        pass
+
+    url_scripts = {
+        "Google Chrome": 'tell application "Google Chrome" to get URL of active tab of front window',
+        "Safari":        'tell application "Safari" to get URL of current tab of front window',
+        "Microsoft Edge":'tell application "Microsoft Edge" to get URL of active tab of front window',
     }
-    all_urls = []
-    for browser, script in scripts.items():
-        try:
-            result = subprocess.run(["osascript", "-e", script],
-                                    capture_output=True, text=True, timeout=5)
-            for u in result.stdout.strip().splitlines():
-                u = u.strip()
-                if u.startswith("http"):
-                    all_urls.append(u)
-        except Exception:
-            pass
-    # Prefer social media URLs
-    for u in all_urls:
-        if is_social_media(u):
-            return u
-    return all_urls[0] if all_urls else None
+    script = url_scripts.get(frontmost)
+    if not script:
+        return None
+    try:
+        result = subprocess.run(["osascript", "-e", script],
+                                capture_output=True, text=True, timeout=5)
+        url = result.stdout.strip()
+        return url if url.startswith("http") else None
+    except Exception:
+        return None
 
 
 def is_social_media(url):
