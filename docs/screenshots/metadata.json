@@ -26,7 +26,9 @@
     "domain": "facebook.com"
   },
   "20260512_121037": {
-    "domain": "facebook.com"
+    "domain": "facebook.com",
+    "deleted": true,
+    "deleted_at": "2026-05-12T15:02:08.668346"
   },
   "20260512_131931": {
     "domain": "facebook.com"
