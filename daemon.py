@@ -396,6 +396,7 @@ def add_domain_time(domain, seconds):
     wk["time_seconds"] += seconds
     visits[domain] = entry
     save_visits(visits)
+    _sync_visit(domain, entry)
 
 
 def get_browser_window_id():
@@ -643,9 +644,8 @@ def main():
                 result = take_screenshot(url, domain)
                 if result:
                     cleanup_old()
-                    build_index()
-                    build_stats()
-                    git_push()
+                    jpg_path, stem = result
+                    _hawker_upload(stem, jpg_path, domain)
                     last_shot_time = time.time()
                     next_shot_gap  = random.randint(MIN_SHOT_GAP, MAX_SHOT_GAP)
                     log(f"Next shot in {next_shot_gap // 60}m {next_shot_gap % 60}s")

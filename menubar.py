@@ -248,12 +248,7 @@ class HawkerApp(rumps.App):
                         if result:
                             file_path, stem = result
                             _d.cleanup_old()
-                            # Upload to Hawker (Vercel) — falls back gracefully if not configured
                             _hawker_upload(stem, file_path, domain)
-                            # Also keep local index/git for legacy fallback
-                            _d.build_index()
-                            _d.build_stats()
-                            _d.git_push()
                             last_shot_time = time.time()
                             next_shot_gap  = random.randint(_d.MIN_SHOT_GAP, _d.MAX_SHOT_GAP)
                             _d.log(f"Next shot in {next_shot_gap // 60}m {next_shot_gap % 60}s")
@@ -284,7 +279,7 @@ class HawkerApp(rumps.App):
     def on_dashboard(self, _):
         cfg = _load_hawker_env()
         url = cfg.get("HAWKER_API_URL", "").rstrip("/") or "https://hawker.vercel.app"
-        subprocess.run(["open", url + "/app.html"])
+        subprocess.run(["open", url + "/gallery.html"])
 
     def on_logfile(self, _):
         subprocess.run(["open", str(_d.LOG_FILE)])
