@@ -89,14 +89,31 @@
     }
   },
   "reddit.com": {
-    "total_visits": 2,
-    "total_time_seconds": 80,
-    "last_visit": "2026-05-13T11:07:17.688561",
+    "total_visits": 3,
+    "total_time_seconds": 120,
+    "last_visit": "2026-05-13T11:08:40.293522",
     "daily": {
       "2026-05-12": {
         "visits": 1,
         "time_seconds": 60
       },
+      "2026-05-13": {
+        "visits": 2,
+        "time_seconds": 60
+      }
+    },
+    "weekly": {
+      "2026-W20": {
+        "visits": 3,
+        "time_seconds": 120
+      }
+    }
+  },
+  "tiktok.com": {
+    "total_visits": 1,
+    "total_time_seconds": 20,
+    "last_visit": "2026-05-13T11:07:59.996804",
+    "daily": {
       "2026-05-13": {
         "visits": 1,
         "time_seconds": 20
@@ -104,8 +121,8 @@
     },
     "weekly": {
       "2026-W20": {
-        "visits": 2,
-        "time_seconds": 80
+        "visits": 1,
+        "time_seconds": 20
       }
     }
   }
