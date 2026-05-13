@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Log Hawk menu bar app — replaces the headless launchd daemon.
+Hawker menu bar app.
 
 Run:  python3 ~/.screenlog/menubar.py
 Stop old daemon first:
@@ -8,14 +8,17 @@ Stop old daemon first:
 """
 
 import atexit
+import base64
+import json
 import os
 import random
 import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 import rumps
@@ -30,6 +33,56 @@ import daemon as _d
 _PLIST_LABEL = "com.mendelrosenberg.screenlog"
 _PLIST_PATH  = _HOME / "Library" / "LaunchAgents" / f"{_PLIST_LABEL}.plist"
 _PIDFILE     = _HERE / "menubar.pid"
+
+# ── Hawker API ───────────────────────────────────────────────────────────────
+# Set HAWKER_API_URL and HAWKER_API_KEY in ~/.screenlog/hawker.env
+# or as environment variables.
+
+def _load_hawker_env():
+    env_file = _HERE / "hawker.env"
+    cfg = {}
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                cfg[k.strip()] = v.strip()
+    cfg.setdefault("HAWKER_API_URL", os.environ.get("HAWKER_API_URL", ""))
+    cfg.setdefault("HAWKER_API_KEY", os.environ.get("HAWKER_API_KEY", ""))
+    return cfg
+
+def _hawker_upload(stem, jpg_path, domain):
+    """POST a screenshot to the Hawker Vercel API. Returns True on success."""
+    cfg = _load_hawker_env()
+    url  = cfg.get("HAWKER_API_URL", "").rstrip("/")
+    key  = cfg.get("HAWKER_API_KEY", "")
+    if not url or not key:
+        _d.log("Hawker upload skipped — HAWKER_API_URL/KEY not configured")
+        return False
+    try:
+        img_b64 = base64.b64encode(Path(jpg_path).read_bytes()).decode()
+        payload = json.dumps({
+            "stem":        stem,
+            "domain":      domain,
+            "imageBase64": img_b64,
+        }).encode()
+        req = urllib.request.Request(
+            url + "/api/upload",
+            data=payload,
+            headers={"Content-Type": "application/json", "x-api-key": key},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = json.loads(resp.read())
+            if body.get("ok"):
+                _d.log(f"Uploaded to Hawker: {body.get('url','')[:60]}")
+                return True
+            _d.log(f"Hawker upload error: {body}")
+            return False
+    except Exception as exc:
+        _d.log(f"Hawker upload failed: {exc}")
+        return False
+
 
 _PLIST_TEMPLATE = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -71,7 +124,6 @@ def _ns_color(rgb_tuple):
 
 
 def _ns_attr_title(text: str, color_tuple: tuple):
-    """Build an NSAttributedString for use as a colored menu bar title."""
     import AppKit
     import Foundation
     font = (AppKit.NSFont.fontWithName_size_("Menlo-Bold", 13)
@@ -101,11 +153,8 @@ def _remove_plist():
 
 
 def _acquire_singleton():
-    """Kill any existing menubar.py instance so only one runs at a time."""
     my_pid = os.getpid()
-    # Unload any launchd-managed instance (prevents KeepAlive restart loop)
     subprocess.run(["launchctl", "unload", str(_PLIST_PATH)], capture_output=True)
-    # Kill previous instance via PID file
     if _PIDFILE.exists():
         try:
             old = int(_PIDFILE.read_text().strip())
@@ -118,13 +167,13 @@ def _acquire_singleton():
     atexit.register(lambda: _PIDFILE.unlink(missing_ok=True))
 
 
-class LogHawkApp(rumps.App):
+class HawkerApp(rumps.App):
 
     _GREEN = (34, 197, 94, 255)
     _RED   = (239, 68, 68, 255)
 
     def __init__(self):
-        super().__init__("Log Hawk", quit_button=None)
+        super().__init__("Hawker", quit_button=None)
 
         self._recording = True
         self._stop_evt  = threading.Event()
@@ -145,18 +194,17 @@ class LogHawkApp(rumps.App):
             None,
             self.login_item,
             None,
-            rumps.MenuItem("Quit Log Hawk",  callback=self.on_quit),
+            rumps.MenuItem("Quit Hawker",  callback=self.on_quit),
         ]
 
         self._set_face("(o,o)", self._GREEN)
         self._start_loop()
 
     def _set_face(self, text: str, color: tuple):
-        """Set menu bar text via NSAttributedString — no image, no scaling issues."""
         try:
             self._status_item.button().setAttributedTitle_(_ns_attr_title(text, color))
         except Exception:
-            self.title = text   # plain-text fallback
+            self.title = text
 
     # ── daemon loop ──────────────────────────────────────────────────────────
 
@@ -198,7 +246,11 @@ class LogHawkApp(rumps.App):
                         _d.log(f"On social media: {url[:80]}")
                         result = _d.take_screenshot(url, domain)
                         if result:
+                            file_path, stem = result
                             _d.cleanup_old()
+                            # Upload to Hawker (Vercel) — falls back gracefully if not configured
+                            _hawker_upload(stem, file_path, domain)
+                            # Also keep local index/git for legacy fallback
                             _d.build_index()
                             _d.build_stats()
                             _d.git_push()
@@ -230,7 +282,9 @@ class LogHawkApp(rumps.App):
             self._start_loop()
 
     def on_dashboard(self, _):
-        subprocess.run(["open", "https://nondevmendel.github.io/log_hawk/"])
+        cfg = _load_hawker_env()
+        url = cfg.get("HAWKER_API_URL", "").rstrip("/") or "https://hawker.vercel.app"
+        subprocess.run(["open", url + "/app.html"])
 
     def on_logfile(self, _):
         subprocess.run(["open", str(_d.LOG_FILE)])
@@ -251,4 +305,4 @@ class LogHawkApp(rumps.App):
 
 if __name__ == "__main__":
     _acquire_singleton()
-    LogHawkApp().run()
+    HawkerApp().run()
