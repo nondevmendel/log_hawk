@@ -89,23 +89,23 @@
     }
   },
   "reddit.com": {
-    "total_visits": 3,
-    "total_time_seconds": 120,
-    "last_visit": "2026-05-13T11:08:40.293522",
+    "total_visits": 4,
+    "total_time_seconds": 180,
+    "last_visit": "2026-05-13T11:10:42.937320",
     "daily": {
       "2026-05-12": {
         "visits": 1,
         "time_seconds": 60
       },
       "2026-05-13": {
-        "visits": 2,
-        "time_seconds": 60
+        "visits": 3,
+        "time_seconds": 120
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 3,
-        "time_seconds": 120
+        "visits": 4,
+        "time_seconds": 180
       }
     }
   },
