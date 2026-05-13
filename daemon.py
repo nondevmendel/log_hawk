@@ -10,6 +10,7 @@ screenlog daemon
 - Pushes to GitHub Pages (docs/ folder in this repo)
 """
 
+import base64
 import json
 import os
 import random
@@ -18,6 +19,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
+import urllib.error
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -167,6 +170,79 @@ CONFIG_FILE = REPO_DIR / "config.json"
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# Hawker Vercel upload helpers
+
+def _load_hawker_env():
+    env_file = REPO_DIR / "hawker.env"
+    cfg = {}
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                cfg[k.strip()] = v.strip()
+    cfg.setdefault("HAWKER_API_URL", os.environ.get("HAWKER_API_URL", ""))
+    cfg.setdefault("HAWKER_API_KEY", os.environ.get("HAWKER_API_KEY", ""))
+    return cfg
+
+
+def _hawker_upload(stem, jpg_path, domain):
+    """POST screenshot to Vercel. Returns True on success."""
+    cfg = _load_hawker_env()
+    url = cfg.get("HAWKER_API_URL", "").rstrip("/")
+    key = cfg.get("HAWKER_API_KEY", "")
+    if not url or not key:
+        log("Hawker upload skipped — HAWKER_API_URL/KEY not configured")
+        return False
+    try:
+        img_b64 = base64.b64encode(Path(jpg_path).read_bytes()).decode()
+        payload = json.dumps({
+            "stem":        stem,
+            "domain":      domain,
+            "imageBase64": img_b64,
+        }).encode()
+        req = urllib.request.Request(
+            url + "/api/upload",
+            data=payload,
+            headers={"Content-Type": "application/json", "x-api-key": key},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = json.loads(resp.read())
+            if body.get("ok"):
+                log(f"Uploaded to Hawker ✓ {body.get('url','')[:60]}")
+                return True
+            log(f"Hawker upload error: {body}")
+            return False
+    except Exception as exc:
+        log(f"Hawker upload failed: {exc}")
+        return False
+
+
+def _sync_visit(domain, entry):
+    """Push a visit entry to Vercel Redis."""
+    cfg = _load_hawker_env()
+    url = cfg.get("HAWKER_API_URL", "").rstrip("/")
+    key = cfg.get("HAWKER_API_KEY", "")
+    if not url or not key:
+        return
+    try:
+        payload = json.dumps({"domain": domain, "entry": entry}).encode()
+        req = urllib.request.Request(
+            url + "/api/visits",
+            data=payload,
+            headers={"Content-Type": "application/json", "x-api-key": key},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            body = json.loads(resp.read())
+            if not body.get("ok"):
+                log(f"Visit sync error: {body}")
+    except Exception as exc:
+        log(f"Visit sync failed: {exc}")
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # Metadata helpers
 
 def load_metadata():
@@ -302,6 +378,7 @@ def record_visit(domain):
     visits[domain] = entry
     save_visits(visits)
     log(f"Visit #{entry['total_visits']} to {domain}")
+    _sync_visit(domain, entry)
 
 
 def add_domain_time(domain, seconds):
