@@ -51,19 +51,23 @@
     }
   },
   "instagram.com": {
-    "total_visits": 1,
-    "total_time_seconds": 200,
-    "last_visit": "2026-05-12T16:03:39.604851",
+    "total_visits": 2,
+    "total_time_seconds": 220,
+    "last_visit": "2026-05-13T10:03:49.157891",
     "daily": {
       "2026-05-12": {
         "visits": 1,
         "time_seconds": 200
+      },
+      "2026-05-13": {
+        "visits": 1,
+        "time_seconds": 20
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 1,
-        "time_seconds": 200
+        "visits": 2,
+        "time_seconds": 220
       }
     }
   },
