@@ -52,7 +52,7 @@
   },
   "instagram.com": {
     "total_visits": 2,
-    "total_time_seconds": 220,
+    "total_time_seconds": 320,
     "last_visit": "2026-05-13T10:03:49.157891",
     "daily": {
       "2026-05-12": {
@@ -61,13 +61,13 @@
       },
       "2026-05-13": {
         "visits": 1,
-        "time_seconds": 20
+        "time_seconds": 120
       }
     },
     "weekly": {
       "2026-W20": {
         "visits": 2,
-        "time_seconds": 220
+        "time_seconds": 320
       }
     }
   },
@@ -89,19 +89,23 @@
     }
   },
   "reddit.com": {
-    "total_visits": 1,
-    "total_time_seconds": 60,
-    "last_visit": "2026-05-12T16:25:43.423503",
+    "total_visits": 2,
+    "total_time_seconds": 80,
+    "last_visit": "2026-05-13T11:07:17.688561",
     "daily": {
       "2026-05-12": {
         "visits": 1,
         "time_seconds": 60
+      },
+      "2026-05-13": {
+        "visits": 1,
+        "time_seconds": 20
       }
     },
     "weekly": {
       "2026-W20": {
-        "visits": 1,
-        "time_seconds": 60
+        "visits": 2,
+        "time_seconds": 80
       }
     }
   }
